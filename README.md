@@ -1,7 +1,7 @@
 # Show temperature and humidity from BLE ADV 'ATC MiThermometer'
 Show telemetry data from Bluetooth BLE advertising device type of 'ATC_MiThermometer'
 
-Show telemetry data after apply custom firmware https://github.com/atc1441/ATC_MiThermometer for the Xiaomi Thermometer LYWSD03MMC.
+Show telemetry data after apply custom firmware https://github.com/pvvx/ATC_MiThermometer (fork https://github.com/atc1441/ATC_MiThermometer) for the Xiaomi Thermometer LYWSD03MMC.
 
 Used Python module : Bleak - https://bleak.readthedocs.io
 
