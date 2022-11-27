@@ -22,6 +22,7 @@ Custom format (all data little-endian):
 UUID 0x181A - size 19: Custom extended format in 0.01 units (all data little-endian):
 
 ```
+uint8_t     MAC[6]; // [0] - lo, .. [6] - hi digits
 int16_t     temperature;    // x 0.01 degree
 uint16_t    humidity;       // x 0.01 %
 uint16_t    battery_mv;     // mV
