@@ -3,7 +3,7 @@ import datetime
 from bleak import BleakScanner
 
 async def main():
-    print("Scanning BLE devices of type 'ATC_MiThermometer', please wait...")
+    print("Scanning BLE devices of type 'ATC_MiThermometer (PVVX)', please wait...")
     stop_event = asyncio.Event()
     # TODO: add something that calls stop_event.set()
 
@@ -34,16 +34,16 @@ async def main():
                 print("device:\t ", name)
                 namelen=len(str(name))+10
                 print("-" * namelen)
-                print('temp:\t ',temp,'C')
-                print('humidity:',humidity, '%')
-                print('batteryv:',batteryv, 'mV')
-                print('battery: ',battery, '%')
-                print('count:\t ',count)
+                print(f"temp:\t  {temp}\xB0C")
+                print(f'humidity: {humidity}%')
+                print(f'batteryv: {batteryv} mV')
+                print(f'battery:  {battery}%')
+                print(f'count:\t  {count}')
                 if datediff:
-                    datedifftext=', delta: ' + str(datediff)
+                    datedifftext=', duration: ' + str(datediff)
                 else:
                     datedifftext=""
-                print('time now:',datenow.strftime("%H:%M:%S"), datedifftext)
+                print(f'time now: {datenow.strftime("%H:%M:%S")}{datedifftext}')
 
 
     async with BleakScanner(callback) as scanner:
