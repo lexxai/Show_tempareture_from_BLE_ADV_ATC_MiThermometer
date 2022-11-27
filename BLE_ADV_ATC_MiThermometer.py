@@ -5,8 +5,6 @@ from bleak import BleakScanner
 async def main():
     print("Scanning BLE devices of type 'ATC_MiThermometer (PVVX)', please wait...")
     stop_event = asyncio.Event()
-    # TODO: add something that calls stop_event.set()
-
     ATC_COUNTERS={};
     ATC_DATE={};
 
@@ -45,13 +43,16 @@ async def main():
                     datedifftext=""
                 print(f'time now: {datenow.strftime("%H:%M:%S")}{datedifftext}')
 
+    try:
+        async with BleakScanner(callback) as scanner:
+            await stop_event.wait()
+    except asyncio.CancelledError as ex:
+        print('**** task scanner cancelled')
+        stop_event.set()
 
-    async with BleakScanner(callback) as scanner:
-        await stop_event.wait()
 
-
-try:
-    asyncio.run(main())
-except Exception as e:
-    pass
-    print(str(e))
+if __name__ == '__main__':
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print(str(e))
