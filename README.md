@@ -7,7 +7,7 @@ Used Python module : Bleak - https://bleak.readthedocs.io
 
 ```
 pip install bleak
-py -i BLE_ADV_ATC_MiThermometer.py
+python3 -i BLE_ADV_ATC_MiThermometer.py
 ```
 
 Result:
