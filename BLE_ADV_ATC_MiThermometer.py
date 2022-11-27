@@ -1,0 +1,57 @@
+import asyncio
+import datetime
+from bleak import BleakScanner
+
+async def main():
+    print("Scanning BLE devices of type 'ATC_MiThermometer', please wait...")
+    stop_event = asyncio.Event()
+    # TODO: add something that calls stop_event.set()
+
+    ATC_COUNTERS={};
+    ATC_DATE={};
+
+    def callback(device, advertising_data):
+        name=advertising_data.local_name;
+        if name and name[0:3]=="ATC" :
+            advatc=advertising_data.service_data['0000181a-0000-1000-8000-00805f9b34fb']
+            count=int.from_bytes(advatc[13:14], byteorder='little', signed=False) 
+            if ATC_COUNTERS.get(name) != count :
+                ATC_COUNTERS.update({name: count}) 
+                datenow=datetime.datetime.now()
+                dateprev=ATC_DATE.get(name)
+                if dateprev:
+                    datediff=datenow-dateprev
+                    datediff=datetime.timedelta(seconds=round(datediff.total_seconds()))
+                else:
+                    datediff=0
+                ATC_DATE.update({name: datenow}) 
+                temp=int.from_bytes(advatc[6:8], byteorder='little', signed=True)/100.0
+                humidity=int.from_bytes(advatc[8:10], byteorder='little', signed=True)/100.0
+                batteryv=int.from_bytes(advatc[10:12], byteorder='little', signed=False)
+                battery=int.from_bytes(advatc[12:13], byteorder='little', signed=False)    
+                flag=int.from_bytes(advatc[14:15], byteorder='little', signed=False) 
+                print()
+                print("device:\t ", name)
+                namelen=len(str(name))+10
+                print("-" * namelen)
+                print('temp:\t ',temp,'C')
+                print('humidity:',humidity, '%')
+                print('batteryv:',batteryv, 'mV')
+                print('battery: ',battery, '%')
+                print('count:\t ',count)
+                if datediff:
+                    datedifftext=', delta: ' + str(datediff)
+                else:
+                    datedifftext=""
+                print('time now:',datenow.strftime("%H:%M:%S"), datedifftext)
+
+
+    async with BleakScanner(callback) as scanner:
+        await stop_event.wait()
+
+
+try:
+    asyncio.run(main())
+except Exception as e:
+    pass
+    print(str(e))
