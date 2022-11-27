@@ -12,7 +12,8 @@ python3 -i BLE_ADV_ATC_MiThermometer.py
 
 Result:
 
-![image](https://user-images.githubusercontent.com/3278842/204113485-b3d1c3a7-5936-4b89-8564-f27fd5e50d1f.png)
+![image](https://user-images.githubusercontent.com/3278842/204151276-c43508b4-945a-4859-8740-efbf5d425674.png)
+
 
 
 Telemetry data of custom PVVX format (https://github.com/pvvx/ATC_MiThermometer):
