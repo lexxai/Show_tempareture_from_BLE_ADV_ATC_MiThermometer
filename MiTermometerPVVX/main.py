@@ -36,7 +36,7 @@ async def main():
                 print("-" * name_len)
                 print(f"temp:\t  {temp}\xB0C")
                 print(f'humidity: {humidity}%')
-                print(f'battery_v: {battery_v} mV')
+                print(f'batteryv: {battery_v} mV')
                 print(f'battery:  {battery}%')
                 print(f'count:\t  {count}')
                 if date_diff:
