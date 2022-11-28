@@ -3,20 +3,34 @@ Show telemetry data from Bluetooth BLE advertising device type of 'ATC_MiThermom
 
 Show telemetry data (PVVX) after apply custom firmware https://github.com/pvvx/ATC_MiThermometer (fork https://github.com/atc1441/ATC_MiThermometer) for the Xiaomi Thermometer LYWSD03MMC.
 
-Used Python module : Bleak - https://bleak.readthedocs.io
+<img src="https://user-images.githubusercontent.com/3278842/204167827-ad60ba14-c568-4914-939f-60d522297c80.png" width="150" height="150">
+
+
+This is a very simple script for decoding telemetry from bluetooth advertising thermometer data.
+
+Used python module : Bleak - https://bleak.readthedocs.io
+
+## Run MiTermometerPVVX
 
 ```
 pip install bleak
-python3 -i BLE_ADV_ATC_MiThermometer.py
+python3 MiTermometerPVVX/main.py
 ```
 
-Result:
+## Build .exe
+```
+pip install pyinstaller 
+script\build.cmd
+```
+exe file placed on pyinstall\dist\MiTermometerPVVX.exe
+
+## Result of MiTermometerPVVX:
 
 ![image](https://user-images.githubusercontent.com/3278842/204151276-c43508b4-945a-4859-8740-efbf5d425674.png)
 
 
 
-Telemetry data of custom PVVX format (https://github.com/pvvx/ATC_MiThermometer):
+## Telemetry data of custom PVVX format (https://github.com/pvvx/ATC_MiThermometer):
 
 Custom format (all data little-endian):
 
