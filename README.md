@@ -28,6 +28,8 @@ exe file placed on pyinstall\dist\MiTermometerPVVX.exe
 
 ![image](https://user-images.githubusercontent.com/3278842/204151276-c43508b4-945a-4859-8740-efbf5d425674.png)
 
+![Screenshot 2023-06-07 144630](https://github.com/lexxai/Show_temperature_from_BLE_ADV_ATC_MiThermometer/assets/3278842/78d6317c-18ca-41ad-9909-af9819620099)
+
 
 
 ## Telemetry data of custom PVVX format (https://github.com/pvvx/ATC_MiThermometer):
