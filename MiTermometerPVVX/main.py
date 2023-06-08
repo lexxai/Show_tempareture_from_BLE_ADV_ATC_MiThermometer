@@ -1,6 +1,7 @@
 import asyncio
 import datetime
-import os
+
+# import os
 
 # import struct
 from bleak import BleakScanner, BleakError
@@ -13,23 +14,26 @@ async def main():
     stop_event = asyncio.Event()
     atc_counters = {}
     atc_date = {}
-    # atc_devices = {"00:00:00:00:99:5B": "ATC-1-995B", "00:00:00:00:DB:77": "ATC-2-DB77"}
+    atc_custom_name = {"DB77": "SLEEP ROOM", "995B": "MAIN ROOM"}
     atc_devices = {}
     print_pos = {"x": 0, "y": 0}
 
-    def print_text_pos(x, y):
+    def print_text_pos(x: int, y: int) -> None:
         print_pos["x"] = x
         print_pos["y"] = y
 
-    def print_text(text):
+    def print_text(text: str) -> None:
         print("\033[" + str(print_pos["y"]) + ";" + str(print_pos["x"]) + "H" + text)
         print_pos["y"] += 1
 
-    def print_clear():
-        #os.system("cls")
+    def print_clear() -> None:
         print("\033c\033[3J")
 
-
+    def custom_name(name: str) -> str:
+        for template, custom_name in atc_custom_name.items():
+            if template in name:
+                name = custom_name
+        return name
 
     def callback(device, advertising_data):
         adv_atc = advertising_data.service_data.get(ATC_SERVICE)
@@ -38,19 +42,20 @@ async def main():
 
         # if device.address not in atc_devices:
         #     return
-        #print("device:\t", device)
-        #print(f"advertising_data:\t  {advertising_data}")
+        # print(f"advertising_data:\t  {advertising_data.local_name}", atc_devices)
         if advertising_data:
             name = device.name
-            #if not name:
-            #    name = advertising_data.local_name
-            #name = ""
+            if name:
+                name = custom_name(name)
+                stored_dev = atc_devices.get(device.address)
+                if stored_dev and name != stored_dev["name"]:
+                    stored_dev["name"] = name
 
             if device.address not in atc_devices:
                 if len(atc_devices) == 0:
                     print_clear()
                 atc_devices[device.address] = {"name": name, "id": len(atc_devices)}
-                #print(atc_devices)
+                # print(atc_devices)
 
             if not name:
                 name = atc_devices.get(device.address)["name"]
@@ -59,8 +64,10 @@ async def main():
                         uiid = "".join(device.address.split(":")[-3:])
                     else:
                         uiid = device.address.split("-")[-1][-6:]
-                    name = "ATC-" + uiid
+                    name = "ATC_" + uiid
+                    name = custom_name(name)
                     atc_devices[device.address]["name"] = name
+
         # print(atc_devices)
         # if name and name[0:3] == "ATC":
         if True:
@@ -105,17 +112,17 @@ async def main():
                     text_width = name_len + gap
                     text_hight = 10 + 3
                     cols = 4
-                    posx = text_width * (id % cols)
-                    posy = text_hight * (id // cols) + 1
-                    print_text_pos(posx, posy)
+                    pos_x = text_width * (id % cols)
+                    pos_y = text_hight * (id // cols) + 1
+                    print_text_pos(pos_x, pos_y)
                     # print_text(f"{'device:':<{h1}}{name}")
                     print_text("{:<10}{}".format("device:", name))
-                    print_text("-" * max(8,name_len))
+                    print_text("-" * max(18, name_len))
                     print_text("{:<10}{:<10}".format("temp:", f"{temp:.2f} \xB0C"))
                     print_text("{:<10}{:<10}".format("humidity:", f"{humidity:.2f} %"))
                     print_text("{:<10}{:<10}".format("batteryv:", f"{battery_v} V"))
                     print_text("{:<10}{:<10}".format("battery:", f"{battery} %"))
-                    print_text("{:<9}{:<11}".format("rssi:", f"{rssi} dB"))
+                    print_text("{:<9}{:<11}".format("rssi:", f"{rssi} dBm"))
                     print_text("{:<10}{:<10}".format("count:", f"{count}"))
                     print_text(
                         "{:<10}{:<10}".format(
@@ -126,18 +133,20 @@ async def main():
                         print_text(
                             "{:<10}{:<10}".format("Duration:", f"{str(date_diff)}")
                         )
-                    #print_text_pos(0, 13+id)
-                    #print(atc_devices)
-                    #print_text(' '.join('{}:{:02x}'.format(i,x) for i,x in enumerate(adv_atc)))
+                    # print_text_pos(0, 14)
+                    # print_text("debug:")
+                    # print(device.name, advertising_data.local_name, atc_devices)
+                    # print_text(' '.join('{}:{:02x}'.format(i,x) for i,x in enumerate(adv_atc)))
 
     try:
         # mode = "passive"
         # mode = "active"
         print_clear()
-         
+
         for mode in ("passive", "active"):
+            # mode = "active"
             print(
-              f"Scanning BLE devices of type 'ATC_MiThermometer (PVVX)' in {mode} mode, please wait..."
+                f"Scanning BLE devices of type 'ATC_MiThermometer (PVVX)' in {mode} mode, please wait..."
             )
             try:
                 async with BleakScanner(callback, scanning_mode=mode):
@@ -145,7 +154,6 @@ async def main():
                     break
             except BleakError as e:
                 print("error", e)
-          
 
     except asyncio.CancelledError:
         print("**** task scanner cancelled")
