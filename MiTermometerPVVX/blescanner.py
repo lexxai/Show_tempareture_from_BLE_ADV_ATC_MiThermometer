@@ -4,10 +4,15 @@ import datetime
 import logging
 from bleak import BleakScanner, BleakError
 
-from abstract import ConsolePrint, LoggerNotification, NotificationAbstract, PrintAbstract
+from abstract import (
+    ConsolePrint,
+    LoggerNotification,
+    NotificationAbstract,
+    PrintAbstract,
+)
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("BLEScanner")
 logger.setLevel(logging.DEBUG)
 # Create a console handler
 console_handler = logging.StreamHandler()
@@ -22,19 +27,21 @@ logger.addHandler(console_handler)
 
 
 class BLEScanner:
-    ALERT_THRESHOLD = 6.0  # Set the temperature threshold (in °C) for alerts
+    ALERT_LOW_THRESHOLD = 6.0  # Set the temperature threshold lower (in °C) for alerts
+    ALERT_HIGH_THRESHOLD = 36.0  # Set the temperature threshold higher (in °C) for alerts
     ATC_CUSTOM_NAMES = {
-        "ATC_5EDB77": "OUTSIDE ROOM",
-        "ATC_F6ED7A": "MAIN ROOM",
-        "ATC-1_995B": "MAIN ROOM",
+        "5EDB77": "OUTSIDE ROOM",
+        "F6ED7A": "MAIN ROOM",
+        "995B": "MAIN ROOM",
     }
 
     def __init__(
         self,
         output: PrintAbstract = None,
         notification: NotificationAbstract = None,
-        alert_threshold: float = None,
+        alert_low_threshold: float = None,
         custom_names: dict = None,
+        alert_high_threshold: float = None,
     ):
         self.output = output or ConsolePrint()
         self.ATC_SERVICE = "0000181a-0000-1000-8000-00805f9b34fb"
@@ -44,7 +51,7 @@ class BLEScanner:
         self.atc_custom_names = custom_names or self.ATC_CUSTOM_NAMES.copy()
         self.atc_devices = {}
         self.print_pos = {"x": 0, "y": 0}
-        self.alert_threshold = alert_threshold or self.ALERT_THRESHOLD
+        self.alert_threshold = alert_low_threshold or self.ALERT_LOW_THRESHOLD
         self.notification = notification
         assert self.output is not None, "Output is not set"
 
@@ -72,7 +79,7 @@ class BLEScanner:
     def custom_name(self, name: str) -> str:
         """Replace default device name with a custom one if available."""
         for template, custom_name in self.atc_custom_names.items():
-            if  name == template or name.endswith(template):
+            if name == template or name.endswith(template):
                 return custom_name
         return name
 
@@ -225,11 +232,16 @@ class BLEScanner:
                 logger.error(f"Error in {mode} mode: {e}")
 
 
-async def main(custom_names: dict = None):
+async def main(
+    custom_names: dict = None,
+    alert_low_threshold: float = None,
+    alert_high_threshold: float = None,
+):
     output = ConsolePrint()
     notification = LoggerNotification()
     scanner = BLEScanner(
-        output=output, notification=notification, custom_names=custom_names
+        output=output, notification=notification, custom_names=custom_names,alert_low_threshold=alert_low_threshold,
+    alert_high_threshold=alert_high_threshold,
     )
     scanner.send_alert(title="MAIN", message="Start scanning")
     try:
@@ -240,6 +252,10 @@ async def main(custom_names: dict = None):
 
 
 if __name__ == "__main__":
+
+    custom_names_default = " ".join(
+        [f"{key}='{value}'" for key, value in BLEScanner.ATC_CUSTOM_NAMES.items()]
+    )
     # Parse arguments
     parser = argparse.ArgumentParser(
         description="Show temperature and humidity from BLE ADV 'ATC MiThermometer'"
@@ -247,8 +263,20 @@ if __name__ == "__main__":
     parser.add_argument(
         "--atc-names",
         nargs="+",
-        help='Define custom ATC names in the format KEY=VALUE (e.g., ATC_5EDB77="OUTSIDE ROOM").',
+        help=f'Define custom ATC names in the format KEY=VALUE, where KEY can match with end of device name (e.g., ATC_12345="OUTSIDE"). Default is "{custom_names_default}".',
     )
+    parser.add_argument(
+        "--alert-low-threshold",
+        type=float,
+        help=f"Set the temperature alert threshold less than (e.g., 5.0 for 5°C). Default is {BLEScanner.ALERT_LOW_THRESHOLD}°C.",
+    )
+
+    parser.add_argument(
+        "--alert-high-threshold",
+        type=float,
+        help=f"Set the temperature alert threshold higher than (e.g., 40.0 for 40°C). Default is {BLEScanner.ALERT_HIGH_THRESHOLD}°C.",
+    )
+
     args = parser.parse_args()
 
     # Parse the provided ATC names into a dictionary
@@ -265,4 +293,7 @@ if __name__ == "__main__":
     if custom_names:
         logger.debug(f"Custom ATC Names: {custom_names}")
 
-    asyncio.run(main(custom_names=custom_names))
+    asyncio.run( 
+        main(custom_names=custom_names, alert_low_threshold=args.alert_low_threshold, alert_high_threshold=args.alert_high_threshold)
+    )  
+
