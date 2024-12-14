@@ -1,14 +1,51 @@
 import asyncio
 import datetime
+import logging
 from bleak import BleakScanner, BleakError
 from plyer import notification
+
+from abc import ABC, abstractmethod
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+# Create a console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)  # Set the level for the console handler
+
+# Create a formatter and attach it to the console handler
+formatter = logging.Formatter('%(asctime)s [%(levelname)s]: %(message)s')
+console_handler.setFormatter(formatter)
+
+# Add the console handler to the logger
+logger.addHandler(console_handler)
+
+
+class NotificationAbstract(ABC):
+    @abstractmethod
+    def send_alert(self, title: str = None, message: str = None) -> None:
+        """Sends an alert message."""
+        ...
+
+
+class SystemNotification(NotificationAbstract):
+
+    def send_alert(self, title: str = None, message: str = None) -> None:
+        """Sends an alert message."""
+        logger.info("\n*** SYETEM NOTIFICATION ***")
+        logger.info(f"Title: {title}")
+        logger.info(f"Message: {message}")
 
 
 class BLEScanner:
     ALERT_THRESHOLD = 34.0  # Set the temperature threshold (in °C) for alerts
     ATC_CUSTOM_NAMES = {"ATC_F8AB88": "OUTSIDE ROOM", "ATC_F6ED7A": "MAIN ROOM"}
 
-    def __init__(self, alert_threshold=ALERT_THRESHOLD, custom_names=None):
+    def __init__(
+        self,
+        alert_threshold=ALERT_THRESHOLD,
+        custom_names=None,
+        notification: NotificationAbstract = None,
+    ):
         self.ATC_SERVICE = "0000181a-0000-1000-8000-00805f9b34fb"
         self.stop_event = asyncio.Event()
         self.atc_counters = {}
@@ -17,6 +54,7 @@ class BLEScanner:
         self.atc_devices = {}
         self.print_pos = {"x": 0, "y": 0}
         self.alert_threshold = alert_threshold
+        self.notification = notification
 
     def print_text_pos(self, x: int, y: int) -> None:
         """Set the print cursor position."""
@@ -143,6 +181,41 @@ class BLEScanner:
         if date_diff:
             self.print_text(f"Duration: {date_diff}")
 
+        # Trigger alert if temperature is below the threshold
+        if temp < self.alert_threshold:
+            self.send_alert(name, temp)
+
+    def send_alert(
+        self,
+        device_name: str = None,
+        temp: float = None,
+        title: str = None,
+        message: str = None,
+    ) -> None:
+        """Sends an alert message."""
+        if not self.notification:
+            logger.warning("Notification is not available.")
+            return
+
+        device_name = device_name or "Unknown Device"
+        temp = temp or 999.99
+        alert_title = title or "Temperature Alert"
+        alert_message = message or f"{device_name}: {temp:.2f} °C"
+        # print("\n*** ALERT: Temperature below threshold ***")
+        # print(f"Device: {device_name}")
+        # print(f"Temperature: {temp:.2f} °C")
+
+        try:
+            self.notification.send_alert(alert_title, alert_message)
+            # Using plyer for cross-platform notifications
+            # notification.notify(
+            #     title=alert_title,
+            #     message=alert_message,
+            #     timeout=10,  # Notification will disappear after 10 seconds
+            # )
+        except Exception as e:
+            print(f"Notification failed: {e}")
+
     async def start_scanning(self):
         """Start scanning for BLE devices."""
         self.print_clear()
@@ -159,12 +232,15 @@ class BLEScanner:
 
 
 async def main():
-    scanner = BLEScanner()
-    try:
-        await scanner.start_scanning()
-    except asyncio.CancelledError:
-        print("Scanning cancelled.")
-        scanner.stop_event.set()
+    notification = SystemNotification()
+    # notification = None
+    scanner = BLEScanner(notification=notification)
+    scanner.send_alert(title="Title", message="Message")
+    # try:
+    #     await scanner.start_scanning()
+    # except asyncio.CancelledError:
+    #     print("Scanning cancelled.")
+    #     scanner.stop_event.set()
 
 
 if __name__ == "__main__":
