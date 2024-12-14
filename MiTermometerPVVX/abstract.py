@@ -1,5 +1,8 @@
 from abc import ABC, abstractmethod
+import logging
 # from plyer import notification
+
+logger = logging.getLogger(f"BLEScanner.{__name__}")
 
 class NotificationAbstract(ABC):
     @abstractmethod
