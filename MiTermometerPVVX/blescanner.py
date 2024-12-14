@@ -4,9 +4,8 @@ import datetime
 import logging
 from bleak import BleakScanner, BleakError
 
-# from plyer import notification
+from abstract import ConsolePrint, LoggerNotification, NotificationAbstract, PrintAbstract
 
-from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -22,43 +21,6 @@ console_handler.setFormatter(formatter)
 logger.addHandler(console_handler)
 
 
-class NotificationAbstract(ABC):
-    @abstractmethod
-    def send_alert(self, title: str = None, message: str = None) -> None:
-        """Sends an alert message."""
-        ...
-
-
-class PrintAbstract(ABC):
-    @abstractmethod
-    def print_value(self, text: str) -> None: ...
-
-
-class LoggerNotification(NotificationAbstract):
-
-    def send_alert(self, title: str = None, message: str = None) -> None:
-        """Sends an alert message."""
-        logger.info("*** START LOGGER NOTIFICATION ***")
-        logger.info(f"Title: {title}")
-        logger.info(f"Message: {message}")
-        logger.info("*** END LOGGER NOTIFICATION ***")
-
-
-class SystemNotification(NotificationAbstract):
-
-    def send_alert(self, title: str = None, message: str = None) -> None:
-        """Sends an alert message."""
-        logger.info("*** START SYETEM NOTIFICATION ***")
-        logger.info(f"Title: {title}")
-        logger.info(f"Message: {message}")
-        logger.info("*** END SYSTEM NOTIFICATION ***")
-
-
-class ConsolePrint(PrintAbstract):
-    def print_value(self, text: str) -> None:
-        print(text)
-
-
 class BLEScanner:
     ALERT_THRESHOLD = 6.0  # Set the temperature threshold (in °C) for alerts
     ATC_CUSTOM_NAMES = {
@@ -71,8 +33,8 @@ class BLEScanner:
         self,
         output: PrintAbstract = None,
         notification: NotificationAbstract = None,
-        alert_threshold=None,
-        custom_names=None,
+        alert_threshold: float = None,
+        custom_names: dict = None,
     ):
         self.output = output or ConsolePrint()
         self.ATC_SERVICE = "0000181a-0000-1000-8000-00805f9b34fb"
@@ -110,7 +72,7 @@ class BLEScanner:
     def custom_name(self, name: str) -> str:
         """Replace default device name with a custom one if available."""
         for template, custom_name in self.atc_custom_names.items():
-            if template in name:
+            if  name == template or name.endswith(template):
                 return custom_name
         return name
 
