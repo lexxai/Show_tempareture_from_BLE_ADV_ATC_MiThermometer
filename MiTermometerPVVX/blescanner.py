@@ -1,13 +1,15 @@
+import argparse
 import asyncio
 import datetime
 import logging
 from bleak import BleakScanner, BleakError
+
 # from plyer import notification
 
 from abc import ABC, abstractmethod
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.DEBUG)
 # Create a console handler
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)  # Set the level for the console handler
@@ -41,6 +43,7 @@ class LoggerNotification(NotificationAbstract):
         logger.info(f"Message: {message}")
         logger.info("*** END LOGGER NOTIFICATION ***")
 
+
 class SystemNotification(NotificationAbstract):
 
     def send_alert(self, title: str = None, message: str = None) -> None:
@@ -57,15 +60,19 @@ class ConsolePrint(PrintAbstract):
 
 
 class BLEScanner:
-    ALERT_THRESHOLD = 34.0  # Set the temperature threshold (in °C) for alerts
-    ATC_CUSTOM_NAMES = {"ATC_F8AB88": "OUTSIDE ROOM", "ATC_F6ED7A": "MAIN ROOM"}
+    ALERT_THRESHOLD = 6.0  # Set the temperature threshold (in °C) for alerts
+    ATC_CUSTOM_NAMES = {
+        "ATC_5EDB77": "OUTSIDE ROOM",
+        "ATC_F6ED7A": "MAIN ROOM",
+        "ATC-1_995B": "MAIN ROOM",
+    }
 
     def __init__(
         self,
         output: PrintAbstract = None,
+        notification: NotificationAbstract = None,
         alert_threshold=None,
         custom_names=None,
-        notification: NotificationAbstract = None,
     ):
         self.output = output or ConsolePrint()
         self.ATC_SERVICE = "0000181a-0000-1000-8000-00805f9b34fb"
@@ -222,7 +229,9 @@ class BLEScanner:
 
         device_name = device_name or "Unknown Device"
         temp = temp or 999.99
-        alert_title = title or "Temperature Alert"
+        alert_title = (
+            title or f"Temperature Alert for less than {self.alert_threshold}C"
+        )
         alert_message = message or f"{device_name}: {temp:.2f} °C"
         # self.output.print_value("\n*** ALERT: Temperature below threshold ***")
         # self.output.print_value(f"Device: {device_name}")
@@ -254,10 +263,12 @@ class BLEScanner:
                 logger.error(f"Error in {mode} mode: {e}")
 
 
-async def main():
+async def main(custom_names: dict = None):
     output = ConsolePrint()
     notification = LoggerNotification()
-    scanner = BLEScanner(output=output, notification=notification)
+    scanner = BLEScanner(
+        output=output, notification=notification, custom_names=custom_names
+    )
     scanner.send_alert(title="MAIN", message="Start scanning")
     try:
         await scanner.start_scanning()
@@ -267,4 +278,29 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    # Parse arguments
+    parser = argparse.ArgumentParser(
+        description="Show temperature and humidity from BLE ADV 'ATC MiThermometer'"
+    )
+    parser.add_argument(
+        "--atc-names",
+        nargs="+",
+        help='Define custom ATC names in the format KEY=VALUE (e.g., ATC_5EDB77="OUTSIDE ROOM").',
+    )
+    args = parser.parse_args()
+
+    # Parse the provided ATC names into a dictionary
+    custom_names = None
+    if args.atc_names:
+        custom_names = {}
+        for entry in args.atc_names:
+            try:
+                key, value = entry.split("=")
+                custom_names[key.strip()] = value.strip()
+            except ValueError:
+                logger.error(f"Invalid entry format: {entry}. Expected KEY=VALUE.")
+
+    if custom_names:
+        logger.debug(f"Custom ATC Names: {custom_names}")
+
+    asyncio.run(main(custom_names=custom_names))
