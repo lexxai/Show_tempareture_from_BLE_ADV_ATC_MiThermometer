@@ -2,7 +2,7 @@ import asyncio
 import datetime
 import logging
 from bleak import BleakScanner, BleakError
-from plyer import notification
+# from plyer import notification
 
 from abc import ABC, abstractmethod
 
@@ -13,7 +13,7 @@ console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)  # Set the level for the console handler
 
 # Create a formatter and attach it to the console handler
-formatter = logging.Formatter('%(asctime)s [%(levelname)s]: %(message)s')
+formatter = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
 console_handler.setFormatter(formatter)
 
 # Add the console handler to the logger
@@ -27,13 +27,33 @@ class NotificationAbstract(ABC):
         ...
 
 
+class PrintAbstract(ABC):
+    @abstractmethod
+    def print_value(self, text: str) -> None: ...
+
+
+class LoggerNotification(NotificationAbstract):
+
+    def send_alert(self, title: str = None, message: str = None) -> None:
+        """Sends an alert message."""
+        logger.info("*** START LOGGER NOTIFICATION ***")
+        logger.info(f"Title: {title}")
+        logger.info(f"Message: {message}")
+        logger.info("*** END LOGGER NOTIFICATION ***")
+
 class SystemNotification(NotificationAbstract):
 
     def send_alert(self, title: str = None, message: str = None) -> None:
         """Sends an alert message."""
-        logger.info("\n*** SYETEM NOTIFICATION ***")
+        logger.info("*** START SYETEM NOTIFICATION ***")
         logger.info(f"Title: {title}")
         logger.info(f"Message: {message}")
+        logger.info("*** END SYSTEM NOTIFICATION ***")
+
+
+class ConsolePrint(PrintAbstract):
+    def print_value(self, text: str) -> None:
+        print(text)
 
 
 class BLEScanner:
@@ -42,10 +62,12 @@ class BLEScanner:
 
     def __init__(
         self,
-        alert_threshold=ALERT_THRESHOLD,
+        output: PrintAbstract = None,
+        alert_threshold=None,
         custom_names=None,
         notification: NotificationAbstract = None,
     ):
+        self.output = output or ConsolePrint()
         self.ATC_SERVICE = "0000181a-0000-1000-8000-00805f9b34fb"
         self.stop_event = asyncio.Event()
         self.atc_counters = {}
@@ -53,8 +75,9 @@ class BLEScanner:
         self.atc_custom_names = custom_names or self.ATC_CUSTOM_NAMES.copy()
         self.atc_devices = {}
         self.print_pos = {"x": 0, "y": 0}
-        self.alert_threshold = alert_threshold
+        self.alert_threshold = alert_threshold or self.ALERT_THRESHOLD
         self.notification = notification
+        assert self.output is not None, "Output is not set"
 
     def print_text_pos(self, x: int, y: int) -> None:
         """Set the print cursor position."""
@@ -63,7 +86,7 @@ class BLEScanner:
 
     def print_text(self, text: str) -> None:
         """Print text at the current cursor position."""
-        print(
+        self.output.print_value(
             "\033["
             + str(self.print_pos["y"])
             + ";"
@@ -75,7 +98,7 @@ class BLEScanner:
 
     def print_clear(self) -> None:
         """Clear the terminal screen."""
-        print("\033c\033[3J")
+        self.output.print_value("\033c\033[3J")
 
     def custom_name(self, name: str) -> str:
         """Replace default device name with a custom one if available."""
@@ -182,7 +205,7 @@ class BLEScanner:
             self.print_text(f"Duration: {date_diff}")
 
         # Trigger alert if temperature is below the threshold
-        if temp < self.alert_threshold:
+        if self.alert_threshold and temp < self.alert_threshold:
             self.send_alert(name, temp)
 
     def send_alert(
@@ -201,9 +224,9 @@ class BLEScanner:
         temp = temp or 999.99
         alert_title = title or "Temperature Alert"
         alert_message = message or f"{device_name}: {temp:.2f} °C"
-        # print("\n*** ALERT: Temperature below threshold ***")
-        # print(f"Device: {device_name}")
-        # print(f"Temperature: {temp:.2f} °C")
+        # self.output.print_value("\n*** ALERT: Temperature below threshold ***")
+        # self.output.print_value(f"Device: {device_name}")
+        # self.output.print_value(f"Temperature: {temp:.2f} °C")
 
         try:
             self.notification.send_alert(alert_title, alert_message)
@@ -214,13 +237,13 @@ class BLEScanner:
             #     timeout=10,  # Notification will disappear after 10 seconds
             # )
         except Exception as e:
-            print(f"Notification failed: {e}")
+            logger.error(f"Notification failed: {e}")
 
     async def start_scanning(self):
         """Start scanning for BLE devices."""
         self.print_clear()
         for mode in ("passive", "active"):
-            print(f"Scanning BLE devices in {mode} mode...")
+            logger.info(f"Scanning BLE devices in {mode} mode...")
             try:
                 async with BleakScanner(
                     self.process_advertising_data, scanning_mode=mode
@@ -228,19 +251,19 @@ class BLEScanner:
                     await self.stop_event.wait()
                     break
             except BleakError as e:
-                print(f"Error in {mode} mode: {e}")
+                logger.error(f"Error in {mode} mode: {e}")
 
 
 async def main():
-    notification = SystemNotification()
-    # notification = None
-    scanner = BLEScanner(notification=notification)
-    scanner.send_alert(title="Title", message="Message")
-    # try:
-    #     await scanner.start_scanning()
-    # except asyncio.CancelledError:
-    #     print("Scanning cancelled.")
-    #     scanner.stop_event.set()
+    output = ConsolePrint()
+    notification = LoggerNotification()
+    scanner = BLEScanner(output=output, notification=notification)
+    scanner.send_alert(title="MAIN", message="Start scanning")
+    try:
+        await scanner.start_scanning()
+    except asyncio.CancelledError:
+        print("Scanning cancelled.")
+        scanner.stop_event.set()
 
 
 if __name__ == "__main__":
