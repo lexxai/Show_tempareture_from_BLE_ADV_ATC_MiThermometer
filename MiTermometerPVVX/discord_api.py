@@ -68,7 +68,7 @@ def _cleanup_cache(current_time: float, interval: int):
 @limit_repeated_messages(interval=LIMIT_INTERVAL)
 async def send_message(message: str, tts: bool = False) -> bool | None:
     web_hook = settings.DISCORD_WEB_HOOKS
-    print(f"Sending message: {message} {web_hook=}")
+    # print(f"Sending message: {message} {web_hook=}")
     if not web_hook or not message:
         return None
     json = {
