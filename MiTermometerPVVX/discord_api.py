@@ -1,3 +1,4 @@
+import logging
 import httpx
 from functools import wraps
 import time
@@ -7,6 +8,8 @@ from env_settings import settings
 _sent_messages_cache = {}
 LIMIT_INTERVAL = 60 * 60 * 24
 CLEANUP_INTERVAL = LIMIT_INTERVAL + 100
+
+logger = logging.getLogger(f"BLEScanner.{__name__}")
 
 
 def limit_repeated_messages(interval: int, cleanup_interval: int = CLEANUP_INTERVAL):
