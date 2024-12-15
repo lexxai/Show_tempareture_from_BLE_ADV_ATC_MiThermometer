@@ -1,167 +1,118 @@
+import argparse
 import asyncio
-import datetime
+import logging
 
-# import os
+from abstract import (
+    ConsolePrint,
+    LoggerNotification,
+)
 
-# import struct
-from bleak import BleakScanner, BleakError
-
-# MiTermometerPVVX
+from blescanner import BLEScanner
 
 
-async def main():
-    ATC_SERVICE = "0000181a-0000-1000-8000-00805f9b34fb"
-    stop_event = asyncio.Event()
-    atc_counters = {}
-    atc_date = {}
-    atc_custom_name = {"DB77": "SLEEP ROOM", "995B": "MAIN ROOM"}
-    atc_devices = {}
-    print_pos = {"x": 0, "y": 0}
+logger = logging.getLogger("BLEScanner")
+logger.setLevel(logging.DEBUG)
 
-    def print_text_pos(x: int, y: int) -> None:
-        print_pos["x"] = x
-        print_pos["y"] = y
+# Create a console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)  # Set the level for the console handler
 
-    def print_text(text: str) -> None:
-        print("\033[" + str(print_pos["y"]) + ";" + str(print_pos["x"]) + "H" + text)
-        print_pos["y"] += 1
+# Create a formatter and attach it to the console handler
+formatter = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
+console_handler.setFormatter(formatter)
 
-    def print_clear() -> None:
-        print("\033c\033[3J")
+# Add the console handler to the logger
+logger.addHandler(console_handler)
 
-    def custom_name(name: str) -> str:
-        for template, custom_name in atc_custom_name.items():
-            if template in name:
-                name = custom_name
-        return name
 
-    def callback(device, advertising_data):
-        adv_atc = advertising_data.service_data.get(ATC_SERVICE)
-        if not adv_atc:
-            return
+async def main(
+    custom_names: dict = None,
+    alert_low_threshold: float = None,
+    alert_high_threshold: float = None,
+    use_text_pos: bool = False,
+):
+    output = ConsolePrint()
+    notification = LoggerNotification()
+    scanner = BLEScanner(
+        output=output,
+        notification=notification,
+        custom_names=custom_names,
+        alert_low_threshold=alert_low_threshold,
+        alert_high_threshold=alert_high_threshold,
+        use_text_pos=use_text_pos,
+    )
+    params = []
+    if custom_names:
+        params.append(f"custom_names={custom_names}")
+    if alert_low_threshold:
+        params.append(f"alert_low_threshold={alert_low_threshold}")
 
-        # if device.address not in atc_devices:
-        #     return
-        # print(f"advertising_data:\t  {advertising_data.local_name}", atc_devices)
-        if advertising_data:
-            name = device.name
-            if name:
-                name = custom_name(name)
-                stored_dev = atc_devices.get(device.address)
-                if stored_dev and name != stored_dev["name"]:
-                    stored_dev["name"] = name
+    if alert_high_threshold:
+        params.append(f"alert_high_threshold={alert_high_threshold}")
 
-            if device.address not in atc_devices:
-                if len(atc_devices) == 0:
-                    print_clear()
-                atc_devices[device.address] = {"name": name, "id": len(atc_devices)}
-                # print(atc_devices)
+    params.append(f"use_text_pos={use_text_pos}")
 
-            if not name:
-                name = atc_devices.get(device.address)["name"]
-                if not name:
-                    if ":" in device.address:
-                        uiid = "".join(device.address.split(":")[-3:])
-                    else:
-                        uiid = device.address.split("-")[-1][-6:]
-                    name = "ATC_" + uiid
-                    name = custom_name(name)
-                    atc_devices[device.address]["name"] = name
-
-        # print(atc_devices)
-        # if name and name[0:3] == "ATC":
-        if True:
-            rssi = advertising_data.rssi
-            # adv_atc = advertising_data.service_data[ATC_SERVICE]
-            if adv_atc:
-                count = int.from_bytes(adv_atc[13:14], byteorder="little", signed=False)
-                # (temp,humidity,battery_v,battery,count) = struct.unpack('<hhHBB',adv_atc[6:14])
-                if atc_counters.get(device.address) != count:
-                    atc_counters.update({device.address: count})
-                    date_now = datetime.datetime.now()
-                    date_prev = atc_date.get(device.address)
-                    if date_prev:
-                        date_diff = date_now - date_prev
-                        date_diff = datetime.timedelta(
-                            seconds=round(date_diff.total_seconds())
-                        )
-                    else:
-                        date_diff = 0
-                    atc_date.update({device.address: date_now})
-                    temp = int.from_bytes(adv_atc[6:8], byteorder="little", signed=True)
-                    humidity = int.from_bytes(
-                        adv_atc[8:10], byteorder="little", signed=True
-                    )
-                    battery_v = int.from_bytes(
-                        adv_atc[10:12], byteorder="little", signed=False
-                    )
-                    battery = int.from_bytes(
-                        adv_atc[12:13], byteorder="little", signed=False
-                    )
-                    # flag=int.from_bytes(adv_atc[14:15], byteorder='little', signed=False)
-                    temp = temp / 100.0
-                    humidity = humidity / 100.0
-                    battery_v = battery_v / 1000.0
-
-                    # print(atc_devices[device.address])
-                    id = atc_devices[device.address]["id"]
-                    h1 = 10
-                    h2 = 10
-                    gap = 12
-                    name_len = h1 + len(name)
-                    text_width = name_len + gap
-                    text_hight = 10 + 3
-                    cols = 4
-                    pos_x = text_width * (id % cols)
-                    pos_y = text_hight * (id // cols) + 1
-                    print_text_pos(pos_x, pos_y)
-                    # print_text(f"{'device:':<{h1}}{name}")
-                    print_text("{:<10}{}".format("device:", name))
-                    print_text("-" * max(18, name_len))
-                    print_text("{:<10}{:<10}".format("temp:", f"{temp:.2f} \xB0C"))
-                    print_text("{:<10}{:<10}".format("humidity:", f"{humidity:.2f} %"))
-                    print_text("{:<10}{:<10}".format("batteryv:", f"{battery_v} V"))
-                    print_text("{:<10}{:<10}".format("battery:", f"{battery} %"))
-                    print_text("{:<9}{:<11}".format("rssi:", f"{rssi} dBm"))
-                    print_text("{:<10}{:<10}".format("count:", f"{count}"))
-                    print_text(
-                        "{:<10}{:<10}".format(
-                            "time now:", f"{date_now.strftime('%H:%M:%S')}"
-                        )
-                    )
-                    if date_diff:
-                        print_text(
-                            "{:<10}{:<10}".format("Duration:", f"{str(date_diff)}")
-                        )
-                    # print_text_pos(0, 14)
-                    # print_text("debug:")
-                    # print(device.name, advertising_data.local_name, atc_devices)
-                    # print_text(' '.join('{}:{:02x}'.format(i,x) for i,x in enumerate(adv_atc)))
-
+    message = ", ".join(params)
+    scanner.send_alert(title="BLE Scanner started with:", message=message)
     try:
-        # mode = "passive"
-        # mode = "active"
-        print_clear()
-
-        for mode in ("passive", "active"):
-            # mode = "active"
-            print(
-                f"Scanning BLE devices of type 'ATC_MiThermometer (PVVX)' in {mode} mode, please wait..."
-            )
-            try:
-                async with BleakScanner(callback, scanning_mode=mode):
-                    await stop_event.wait()
-                    break
-            except BleakError as e:
-                print("error", e)
-
+        await scanner.start_scanning()
     except asyncio.CancelledError:
-        print("**** task scanner cancelled")
-        stop_event.set()
+        print("Scanning cancelled.")
+        scanner.stop_event.set()
 
 
 if __name__ == "__main__":
-    try:
-        asyncio.run(main())
-    except Exception as e:
-        print(str(e))
+
+    custom_names_default = " ".join(
+        [f"{key}='{value}'" for key, value in BLEScanner.ATC_CUSTOM_NAMES.items()]
+    )
+    # Parse arguments
+    parser = argparse.ArgumentParser(
+        description="Show temperature and humidity from BLE ADV 'ATC MiThermometer'"
+    )
+    parser.add_argument(
+        "--atc-names",
+        nargs="+",
+        help=f'Define custom ATC names in the format KEY=VALUE, where KEY can match with end of device name (e.g., ATC_12345="OUTSIDE"). Default is "{custom_names_default}".',
+    )
+    parser.add_argument(
+        "--alert-low-threshold",
+        type=float,
+        help=f"Set the temperature alert threshold less than (e.g., 5.0 for 5°C). Default is {BLEScanner.ALERT_LOW_THRESHOLD}°C.",
+    )
+
+    parser.add_argument(
+        "--alert-high-threshold",
+        type=float,
+        help=f"Set the temperature alert threshold higher than (e.g., 40.0 for 40°C). Default is {BLEScanner.ALERT_HIGH_THRESHOLD}°C.",
+    )
+    parser.add_argument(
+        "--disable_text_pos",
+        help=f"Used when need to disable use text position and use plain print. Default is enabled.",
+        action="store_false",
+    )
+
+    args = parser.parse_args()
+
+    # Parse the provided ATC names into a dictionary
+    custom_names = None
+    if args.atc_names:
+        custom_names = {}
+        for entry in args.atc_names:
+            try:
+                key, value = entry.split("=")
+                custom_names[key.strip()] = value.strip()
+            except ValueError:
+                logger.error(f"Invalid entry format: {entry}. Expected KEY=VALUE.")
+
+    if custom_names:
+        logger.debug(f"Custom ATC Names: {custom_names}")
+
+    asyncio.run(
+        main(
+            custom_names=custom_names,
+            alert_low_threshold=args.alert_low_threshold,
+            alert_high_threshold=args.alert_high_threshold,
+            use_text_pos=args.disable_text_pos,
+        )
+    )
