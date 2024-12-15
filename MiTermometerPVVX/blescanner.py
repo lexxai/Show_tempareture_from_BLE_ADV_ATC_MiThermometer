@@ -266,7 +266,7 @@ async def main(
     alert_high_threshold: float = None,
 ):
     output = ConsolePrint()
-    notification = PrintNotification()
+    notification = LoggerNotification()
     scanner = BLEScanner(
         output=output,
         notification=notification,
@@ -274,7 +274,17 @@ async def main(
         alert_low_threshold=alert_low_threshold,
         alert_high_threshold=alert_high_threshold,
     )
-    scanner.send_alert(title="MAIN", message="Start scanning")
+    params = []
+    if custom_names:
+        params.append(f"custom_names={custom_names}")
+    if alert_low_threshold:
+        params.append(f"alert_low_threshold={alert_low_threshold}")
+
+    if alert_high_threshold:
+        params.append(f"alert_high_threshold={alert_high_threshold}")
+
+    message = ", ".join(params)
+    scanner.send_alert(title="BLE Scanner started with:", message=message)
     try:
         await scanner.start_scanning()
     except asyncio.CancelledError:

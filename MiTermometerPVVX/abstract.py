@@ -29,7 +29,7 @@ class LoggerNotification(NotificationAbstract):
             logger.info(f"Title: {title}")
         if message:
             logger.info(f"Message: {message}")
-        logger.info("*** END LOGGER NOTIFICATION ***\n")
+        logger.info("*** END LOGGER NOTIFICATION ***")
 
 
 class PrintNotification(NotificationAbstract):
