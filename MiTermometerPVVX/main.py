@@ -4,11 +4,12 @@ import logging
 
 from env_settings import settings
 
-from abstract import (
-    ConsolePrint,
+from notifications import (
     DicordNotification,
     LoggerNotification,
 )
+
+from outputs import ConsolePrint
 
 from blescanner import BLEScanner
 

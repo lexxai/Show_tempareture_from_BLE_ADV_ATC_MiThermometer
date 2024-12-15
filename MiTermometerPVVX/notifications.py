@@ -21,17 +21,6 @@ class NotificationAbstract(ABC):
         """Sends an alert message."""
         ...
 
-
-class PrintAbstract(ABC):
-    @abstractmethod
-    def print_value(self, text: str, pos: dict = None) -> None: ...
-
-    @abstractmethod
-    def clear(self) -> None: ...
-
-    def clear_lines(self, lines: int = 1): ...
-
-
 class LoggerNotification(NotificationAbstract):
     @staticmethod
     def send_alert(title: str = None, message: str = None) -> None:
@@ -43,7 +32,6 @@ class LoggerNotification(NotificationAbstract):
             logger.info(f"Message: {message}")
         logger.info("*** END LOGGER NOTIFICATION ***")
 
-
 class PrintNotification(NotificationAbstract):
     def send_alert(self, title: str = None, message: str = None) -> None:
         """Sends an alert message."""
@@ -53,7 +41,6 @@ class PrintNotification(NotificationAbstract):
         if message:
             print(f"Message: {message}")
         print("*** END PRINT NOTIFICATION ***\n")
-
 
 class DicordNotification(NotificationAbstract):
     is_async = True
@@ -81,20 +68,3 @@ class SystemNotification(NotificationAbstract):
         #     message=alert_message,
         #     timeout=10,  # Notification will disappear after 10 seconds
         # )
-
-
-class ConsolePrint(PrintAbstract):
-    def print_value(self, text: str, pos: dict = None) -> None:
-        if pos is not None:
-            print_text = f'\033[{str(pos["y"])};{str(pos["x"])}H{text}'
-        else:
-            print_text = text
-
-        print(print_text)
-
-    def clear(self):
-        print("\033c\033[3J")
-
-    def clear_lines(self, lines: int = 1):
-        for _ in range(lines):
-            print("\033[K")

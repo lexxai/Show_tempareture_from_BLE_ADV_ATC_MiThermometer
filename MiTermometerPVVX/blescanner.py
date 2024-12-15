@@ -4,12 +4,9 @@ from functools import wraps
 import logging
 from bleak import BleakScanner, BleakError
 
-from abstract import (
-    ConsolePrint,
-    NotificationAbstract,
-    PrintAbstract,
-)
+from notifications import NotificationAbstract
 
+from outputs import ConsolePrint, PrintAbstract
 
 logger = logging.getLogger(f"BLEScanner.{__name__}")
 
