@@ -235,12 +235,12 @@ class BLEScanner:
                 name, temp, threshold_type=2, threshold_value=self.alert_high_threshold
             )
         if title or message:
-            self.clear_lines(10)
-            self.print_text("")
             if self.is_need_send_alert(name, temp):
+                self.clear_lines(10)
+                self.print_text("")
                 await self.send_alert(title, message)
 
-    def is_need_send_alert(self, name:str, temp: float) -> bool:
+    def is_need_send_alert(self, name: str, temp: float) -> bool:
         """
         Checks if it is needed to send an alert message.
 
@@ -252,11 +252,14 @@ class BLEScanner:
         bool: True if an alert message should be sent, False if not.
         """
         if self.cache_sented_alert.get(name):
-            if delta:=abs(self.cache_sented_alert[name] - temp) > self.SENT_TRGESHOLD_TEMP:
+            delta_temp = abs(self.cache_sented_alert[name] - temp)
+            if delta_temp > self.SENT_TRGESHOLD_TEMP:
                 self.cache_sented_alert[name] = temp
                 return True
             else:
-                logger.debug(f"Temperature is not changed so much for notification. {temp=} {delta=}")
+                # logger.debug(
+                #     f"Temperature is not changed so much for notification. {temp=} {delta_temp=}"
+                # )
                 return False
         self.cache_sented_alert[name] = temp
         return True
