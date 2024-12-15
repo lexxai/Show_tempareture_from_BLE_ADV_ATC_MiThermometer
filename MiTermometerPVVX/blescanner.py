@@ -26,7 +26,7 @@ class BLEScanner:
     def __init__(
         self,
         output: PrintAbstract = None,
-        notification: NotificationAbstract = None,
+        notification: list[NotificationAbstract] | NotificationAbstract = None,
         alert_low_threshold: float = None,
         custom_names: dict = None,
         alert_high_threshold: float = None,
