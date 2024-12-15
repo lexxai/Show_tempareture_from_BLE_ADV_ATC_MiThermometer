@@ -21,6 +21,7 @@ class BLEScanner:
     COLS = 4
     TEXT_WIDTH = 30
     LINE_HEIGHT = 5
+    SENT_TRGESHOLD_TEMP = 1
 
     def __init__(
         self,
@@ -43,6 +44,7 @@ class BLEScanner:
         self.alert_high_threshold = alert_high_threshold or self.ALERT_HIGH_THRESHOLD
         self.notification = notification
         self.use_text_pos = use_text_pos
+        self.cache_sented_alert = {}
         assert self.output is not None, "Output is not set"
 
     def set_text_pos(self, x: int = None, y: int = None) -> None:
@@ -235,7 +237,29 @@ class BLEScanner:
         if title or message:
             self.clear_lines(10)
             self.print_text("")
-            await self.send_alert(title, message)
+            if self.is_need_send_alert(name, temp):
+                await self.send_alert(title, message)
+
+    def is_need_send_alert(self, name:str, temp: float) -> bool:
+        """
+        Checks if it is needed to send an alert message.
+
+        Args:
+        name (str): The name of the device.
+        temp (float): The current temperature.
+
+        Returns:
+        bool: True if an alert message should be sent, False if not.
+        """
+        if self.cache_sented_alert.get(name):
+            if delta:=abs(self.cache_sented_alert[name] - temp) > self.SENT_TRGESHOLD_TEMP:
+                self.cache_sented_alert[name] = temp
+                return True
+            else:
+                logger.debug(f"Temperature is not changed so much for notification. {temp=} {delta=}")
+                return False
+        self.cache_sented_alert[name] = temp
+        return True
 
     async def send_alert(
         self,
