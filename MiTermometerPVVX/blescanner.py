@@ -8,6 +8,7 @@ from abstract import (
     ConsolePrint,
     LoggerNotification,
     NotificationAbstract,
+    PrintNotification,
     PrintAbstract,
 )
 
@@ -29,7 +30,7 @@ logger.addHandler(console_handler)
 class BLEScanner:
     # Set the temperature thresholds (in °C) for alerts
     ALERT_LOW_THRESHOLD = 6.0
-    ALERT_HIGH_THRESHOLD = 16.0
+    ALERT_HIGH_THRESHOLD = 36.0
     COLS = 4
     TEXT_WIDTH = 24
 
@@ -58,9 +59,10 @@ class BLEScanner:
         self.alert_low_threshold = alert_low_threshold or self.ALERT_LOW_THRESHOLD
         self.alert_high_threshold = alert_high_threshold or self.ALERT_HIGH_THRESHOLD
         self.notification = notification
+        self.use_text_pos = False
         assert self.output is not None, "Output is not set"
 
-    def print_text_pos(self, x: int = None, y: int = None) -> None:
+    def set_text_pos(self, x: int = None, y: int = None) -> None:
         """Set the print cursor position."""
         if x is not None:
             self.print_pos["x"] = x
@@ -73,30 +75,26 @@ class BLEScanner:
         if dy:
             self.print_pos["y"] += dy
 
-    def get_pos_dict(self) -> dict:
-        return {"x": self.print_pos["x"], "y": self.print_pos["y"]}
+    def get_text_pos_dict(self) -> dict:
+        return self.print_pos.copy()
 
     def print_text(self, text: str) -> None:
         """Print text at the current cursor position."""
-        self.output.print_value(text, pos=self.get_pos_dict())
-        # self.output.print_value(
-        #     "\033["
-        #     + str(self.print_pos["y"])
-        #     + ";"
-        #     + str(self.print_pos["x"])
-        #     + "H"
-        #     + text
-        # )
+        pos = self.get_text_pos_dict() if self.use_text_pos else None
+        self.output.print_value(text, pos=pos)
         self.shift_text_pos(dy=1)
 
     def print_clear(self) -> None:
         """Clear the terminal screen."""
-        self.output.clear()
+        if self.use_text_pos:
+            self.output.clear()
 
     def custom_name(self, name: str) -> str:
         """Replace default device name with a custom one if available."""
+        logger.debug(f"custom_name in: {name}")
         for template, custom_name in self.atc_custom_names.items():
             if name.endswith(template) or name == template:
+                logger.debug(f"custom_name out: {custom_name}")
                 return custom_name
         return name
 
@@ -184,7 +182,7 @@ class BLEScanner:
         text_width = self.TEXT_WIDTH
         pos_x = text_width * (id % cols)
         pos_y = 5 * (id // cols) + 1
-        self.print_text_pos(pos_x, pos_y)
+        self.set_text_pos(pos_x, pos_y)
 
         self.print_text(f"Device: {name}")
         self.print_text("-" * 18)
@@ -268,7 +266,7 @@ async def main(
     alert_high_threshold: float = None,
 ):
     output = ConsolePrint()
-    notification = LoggerNotification()
+    notification = PrintNotification()
     scanner = BLEScanner(
         output=output,
         notification=notification,

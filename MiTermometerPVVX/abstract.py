@@ -22,7 +22,6 @@ class PrintAbstract(ABC):
 
 
 class LoggerNotification(NotificationAbstract):
-
     def send_alert(self, title: str = None, message: str = None) -> None:
         """Sends an alert message."""
         logger.info("*** START LOGGER NOTIFICATION ***")
@@ -30,11 +29,21 @@ class LoggerNotification(NotificationAbstract):
             logger.info(f"Title: {title}")
         if message:
             logger.info(f"Message: {message}")
-        logger.info("*** END LOGGER NOTIFICATION ***")
+        logger.info("*** END LOGGER NOTIFICATION ***\n")
+
+
+class PrintNotification(NotificationAbstract):
+    def send_alert(self, title: str = None, message: str = None) -> None:
+        """Sends an alert message."""
+        print("\n*** START PRINT NOTIFICATION ***")
+        if title:
+            print(f"Title: {title}")
+        if message:
+            print(f"Message: {message}")
+        print("*** END PRINT NOTIFICATION ***\n")
 
 
 class SystemNotification(NotificationAbstract):
-
     def send_alert(self, title: str = None, message: str = None) -> None:
         """Sends an alert message."""
         logger.info("*** START SYETEM NOTIFICATION ***")
