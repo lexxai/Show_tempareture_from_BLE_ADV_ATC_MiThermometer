@@ -70,4 +70,4 @@ class ConsolePrint(PrintAbstract):
         print(print_text)
 
     def clear(self):
-        self.print_value("\033c\033[3J")
+        print("\033c\033[3J")

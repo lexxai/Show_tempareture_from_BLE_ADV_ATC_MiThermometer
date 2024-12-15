@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+from functools import wraps
 import logging
 from bleak import BleakScanner, BleakError
 
@@ -19,6 +20,7 @@ class BLEScanner:
     ALERT_HIGH_THRESHOLD = 36.0
     COLS = 4
     TEXT_WIDTH = 24
+    LINE_HEIGHT = 5
 
     ATC_CUSTOM_NAMES = {
         "5EDB77": "OUTSIDE ROOM",
@@ -69,20 +71,20 @@ class BLEScanner:
         """Print text at the current cursor position."""
         pos = self.get_text_pos_dict() if self.use_text_pos else None
         self.output.print_value(text, pos=pos)
-        self.shift_text_pos(dy=1)
+        if self.use_text_pos:
+            self.shift_text_pos(dy=1)
 
     def print_clear(self) -> None:
         """Clear the terminal screen."""
         if self.use_text_pos:
             self.output.clear()
 
-    def custom_name(self, name: str) -> str:
+    def custom_name(self, name: str | None) -> str | None:
         """Replace default device name with a custom one if available."""
-        logger.debug(f"custom_name in: {name}")
-        for template, custom_name in self.atc_custom_names.items():
-            if name.endswith(template) or name == template:
-                logger.debug(f"custom_name out: {custom_name}")
-                return custom_name
+        if name:
+            for template, custom_name in self.atc_custom_names.items():
+                if name.endswith(template) or name == template:
+                    return custom_name
         return name
 
     def process_advertising_data(self, device, advertising_data):
@@ -91,7 +93,7 @@ class BLEScanner:
         if not adv_atc:
             return
 
-        name = device.name or self.generate_device_name(device)
+        name = self.custom_name(device.name) or self.generate_device_name(device)
         stored_device = self.atc_devices.get(device.address)
 
         if not stored_device:
@@ -114,6 +116,11 @@ class BLEScanner:
         else:
             uiid = device.address.split("-")[-1][-6:]
         return self.custom_name("ATC_" + uiid)
+
+    def get_device_name(self, address) -> str | None:
+        """Get the name of a registered BLE device."""
+
+        return self.atc_devices.get(address, {}).get("name")
 
     def update_device_data(self, device, advertising_data, adv_atc):
         """Update the data of a registered BLE device."""
@@ -147,7 +154,32 @@ class BLEScanner:
             date_now,
             date_diff,
         )
+        self.monitor_thresholds(self.get_device_name(device.address), temp)
 
+    def output_cols(func):
+        @wraps(func)
+        def wrapper(self, *args, **kwargs):
+            address = args[0] if len(args) > 0 else kwargs.get("address")
+            if address is not None:
+                id = self.atc_devices.get(address, {}).get("id")  # noqa: F841 address
+                if id is not None:
+                    # if id == 0:
+                    #     self.print_clear()
+                    pos_x = self.TEXT_WIDTH * (id % self.COLS)
+                    pos_y = self.LINE_HEIGHT * (id // self.COLS) + 1
+                    self.set_text_pos(pos_x, pos_y)
+                    # logger.debug(f"Device ID: {id} {pos_x=} {pos_y=}")
+
+            func(self, *args, **kwargs)
+
+            if address is not None:
+                self.shift_text_pos(dy=2)
+                self.set_text_pos(x=0)
+                self.print_text("")
+
+        return wrapper
+
+    @output_cols
     def display_device_info(
         self,
         address,
@@ -161,15 +193,7 @@ class BLEScanner:
         date_diff,
     ):
         """Display formatted device information."""
-        device_info = self.atc_devices[address]
-        id = device_info["id"]
-        name = device_info["name"]
-
-        cols = self.COLS
-        text_width = self.TEXT_WIDTH
-        pos_x = text_width * (id % cols)
-        pos_y = 5 * (id // cols) + 1
-        self.set_text_pos(pos_x, pos_y)
+        name = self.get_device_name(address)
 
         self.print_text(f"Device: {name}")
         self.print_text("-" * 18)
@@ -181,10 +205,6 @@ class BLEScanner:
         self.print_text(f"Last Seen: {date_now.strftime('%H:%M:%S')}")
         if date_diff:
             self.print_text(f"Duration: {date_diff}")
-        self.print_pos["y"] += 2
-        self.print_pos["x"] = 0
-        self.print_text("")
-        self.monitor_thresholds(name, temp)
 
     def generate_title_message(
         self,
@@ -234,7 +254,7 @@ class BLEScanner:
 
     async def start_scanning(self):
         """Start scanning for BLE devices."""
-        self.print_clear()
+        # self.print_clear()
         for mode in ("passive", "active"):
             logger.info(f"Scanning BLE devices in {mode} mode...")
             try:
