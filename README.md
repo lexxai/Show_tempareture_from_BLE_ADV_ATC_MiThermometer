@@ -37,7 +37,7 @@ exe file placed on pyinstall\dist\MiTermometerPVVX.exe
 ```
 usage: main.py [-h] [--names NAMES [NAMES ...]] [--alert-low-threshold ALERT_LOW_THRESHOLD]
                [--alert-high-threshold ALERT_HIGH_THRESHOLD] [--sent_theshold_temp SENT_THESHOLD_TEMP]
-               [--disable_text_pos]
+               [--disable_text_pos] [--mode {auto,passive,active}]
 
 Show temperature and humidity from BLE ADV 'ATC MiThermometer' and alarm on temperature.
 
@@ -55,6 +55,8 @@ options:
   --sent_theshold_temp SENT_THESHOLD_TEMP
                         Set the delta temperature alert threshold for send next notification. Default is 1.0.
   --disable_text_pos    Used when need to disable use text position and use plain print. Default is enabled.
+  --mode {auto,passive,active}
+                        Select scan mode. Default is 'auto'.
 ```
 
 ## Telemetry data of custom PVVX format (https://github.com/pvvx/ATC_MiThermometer):

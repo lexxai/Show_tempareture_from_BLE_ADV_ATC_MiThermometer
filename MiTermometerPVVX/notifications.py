@@ -7,7 +7,6 @@ from discord_api import send_message as discors_send_message
 
 logger = logging.getLogger(f"BLEScanner.{__name__}")
 
-
 class NotificationAbstract(ABC):
     is_async = False
 

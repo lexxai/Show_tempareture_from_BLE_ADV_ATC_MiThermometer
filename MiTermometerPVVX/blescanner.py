@@ -27,6 +27,7 @@ class BLEScanner:
         alert_high_threshold: float = None,
         use_text_pos: bool = True,
         sent_theshold_temp: float = SENT_TRGESHOLD_TEMP,
+        mode: str = "auto",  # all, passive, active
     ):
         self.output = output or ConsolePrint()
         self.ATC_SERVICE = "0000181a-0000-1000-8000-00805f9b34fb"
@@ -42,6 +43,7 @@ class BLEScanner:
         self.use_text_pos = use_text_pos
         self.cache_sented_alert = {}
         self.sent_theshold_temp = sent_theshold_temp
+        self.mode = mode
         assert self.output is not None, "Output is not set"
 
     def set_text_pos(self, x: int = None, y: int = None) -> None:
@@ -286,7 +288,8 @@ class BLEScanner:
     async def start_scanning(self):
         """Start scanning for BLE devices."""
         # self.print_clear()
-        for mode in ("passive", "active"):
+        modes = ("passive", "active") if self.mode.lower() == "auto" else (self.mode,)
+        for mode in modes:
             logger.info(f"Scanning BLE devices in {mode} mode...")
             try:
                 async with BleakScanner(

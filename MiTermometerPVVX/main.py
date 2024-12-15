@@ -35,6 +35,7 @@ async def main(
     alert_high_threshold: float = None,
     use_text_pos: bool = False,
     sent_theshold_temp: float = None,
+    mode: str = None,
 ):
     output = ConsolePrint()
     notification = [LoggerNotification(), DicordNotification()]
@@ -46,6 +47,7 @@ async def main(
         alert_high_threshold=alert_high_threshold,
         use_text_pos=use_text_pos,
         sent_theshold_temp=sent_theshold_temp,
+        mode=mode,
     )
     params = []
     if custom_names:
@@ -109,6 +111,12 @@ if __name__ == "__main__":
         help=f"Used when need to disable use text position and use plain print. Default is enabled.",
         action="store_false",
     )
+    parser.add_argument(
+        "--mode",
+        choices=["auto", "passive", "active"],
+        default="auto",
+        help="Select scan mode. Default is 'auto'.",
+    )
 
     args = parser.parse_args()
 
@@ -133,5 +141,6 @@ if __name__ == "__main__":
             alert_high_threshold=args.alert_high_threshold,
             use_text_pos=args.disable_text_pos,
             sent_theshold_temp=args.sent_theshold_temp,
+            mode=args.mode,
         )
     )
