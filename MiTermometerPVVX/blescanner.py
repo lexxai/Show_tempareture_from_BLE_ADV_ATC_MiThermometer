@@ -81,7 +81,7 @@ class BLEScanner:
                     return custom_name
         return name
 
-    def process_advertising_data(self, device, advertising_data):
+    async def process_advertising_data(self, device, advertising_data):
         """Process BLE advertising data."""
         adv_atc = advertising_data.service_data.get(self.ATC_SERVICE)
         if not adv_atc:
@@ -95,7 +95,7 @@ class BLEScanner:
         elif name != stored_device["name"]:
             stored_device["name"] = name
 
-        self.update_device_data(device, advertising_data, adv_atc)
+        await self.update_device_data(device, advertising_data, adv_atc)
 
     def register_new_device(self, device, name):
         """Register a new BLE device."""
@@ -116,7 +116,7 @@ class BLEScanner:
 
         return self.atc_devices.get(address, {}).get("name")
 
-    def update_device_data(self, device, advertising_data, adv_atc):
+    async def update_device_data(self, device, advertising_data, adv_atc):
         """Update the data of a registered BLE device."""
         count = int.from_bytes(adv_atc[13:14], byteorder="little", signed=False)
         if self.atc_counters.get(device.address) == count:
@@ -148,7 +148,7 @@ class BLEScanner:
             date_now,
             date_diff,
         )
-        self.monitor_thresholds(self.get_device_name(device.address), temp)
+        await self.monitor_thresholds(self.get_device_name(device.address), temp)
 
     def clear_lines(self, lines: int = 1):
         if self.use_text_pos:
@@ -220,7 +220,7 @@ class BLEScanner:
 
         return title, message
 
-    def monitor_thresholds(self, name, temp):
+    async def monitor_thresholds(self, name, temp):
         title, message = None, None
         # Trigger alert if temperature is below the threshold
         if self.alert_low_threshold is not None and temp <= self.alert_low_threshold:
@@ -235,9 +235,9 @@ class BLEScanner:
         if title or message:
             self.clear_lines(7)
             self.print_text("")
-            self.send_alert(title, message)
+            await self.send_alert(title, message)
 
-    def send_alert(
+    async def send_alert(
         self,
         title: str = None,
         message: str = None,
@@ -249,9 +249,15 @@ class BLEScanner:
         try:
             if isinstance(self.notification, list):
                 for n in self.notification:
-                    n.send_alert(title, message)
+                    if n.is_async:
+                        await n.send_alert_async(title, message)
+                    else:
+                        n.send_alert(title, message)
             else:
-                self.notification.send_alert(title, message)
+                if self.notification.is_async:
+                    await self.notification.send_alert_async(title, message)
+                else:
+                    self.notification.send_alert(title, message)
         except Exception as e:
             logger.error(f"Notification failed: {e}")
 

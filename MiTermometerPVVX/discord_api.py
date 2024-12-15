@@ -5,8 +5,8 @@ from env_settings import settings
 
 # In-memory cache to track recently sent messages
 _sent_messages_cache = {}
-LIMIT_INTERVAL = 60
-CLEANUP_INTERVAL = 300
+LIMIT_INTERVAL = 60 * 60 * 24
+CLEANUP_INTERVAL = LIMIT_INTERVAL + 100
 
 
 def limit_repeated_messages(interval: int, cleanup_interval: int = CLEANUP_INTERVAL):
@@ -68,6 +68,7 @@ def _cleanup_cache(current_time: float, interval: int):
 @limit_repeated_messages(interval=LIMIT_INTERVAL)
 async def send_message(message: str, tts: bool = False) -> bool | None:
     web_hook = settings.DISCORD_WEB_HOOKS
+    print(f"Sending message: {message} {web_hook=}")
     if not web_hook or not message:
         return None
     json = {

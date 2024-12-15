@@ -6,8 +6,8 @@ from env_settings import settings
 
 from abstract import (
     ConsolePrint,
+    DicordNotification,
     LoggerNotification,
-    PrintNotification,
 )
 
 from blescanner import BLEScanner
@@ -35,7 +35,7 @@ async def main(
     use_text_pos: bool = False,
 ):
     output = ConsolePrint()
-    notification = [LoggerNotification(), PrintNotification()]
+    notification = [LoggerNotification(), DicordNotification()]
     scanner = BLEScanner(
         output=output,
         notification=notification,
