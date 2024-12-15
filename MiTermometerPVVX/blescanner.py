@@ -9,6 +9,11 @@ from notifications import NotificationAbstract
 from outputs import ConsolePrint, PrintAbstract
 
 logger = logging.getLogger(f"BLEScanner.{__name__}")
+# logger = None
+
+def init_logger():
+    global logger
+    logger = logging.getLogger(f"BLEScanner.{__name__}")
 
 
 class BLEScanner:

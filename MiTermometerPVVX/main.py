@@ -1,6 +1,8 @@
 import argparse
 import asyncio
 import logging
+from logging.handlers import QueueHandler, QueueListener
+from queue import Queue
 
 from env_settings import settings
 
@@ -13,21 +15,103 @@ from outputs import ConsolePrint
 
 from blescanner import BLEScanner
 
-
-logger = logging.getLogger("BLEScanner")
-logger.setLevel(logging.DEBUG)
-
-# Create a console handler
+logger = logging.getLogger("_BLEScanner")
+logger.setLevel(logging.ERROR)
 console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)  # Set the level for the console handler
-
-# Create a formatter and attach it to the console handler
-formatter = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
+# console_handler.setLevel(logging.ERROR)
+formatter = logging.Formatter("* SYNC MAIN %(asctime)s [%(levelname)s]: %(message)s")
 console_handler.setFormatter(formatter)
-
-# Add the console handler to the logger
 logger.addHandler(console_handler)
 
+# # Ensure child loggers propagate messages
+# for child_logger_name in ["BLEScanner.notifications", "BLEScanner.blescanner"]:
+#     child_logger = logging.getLogger(child_logger_name)
+#     child_logger.propagate = True
+#     child_logger.handlers = []
+
+# logger = logging.getLogger("BLEScanner")
+# logger.setLevel(logging.DEBUG)
+
+# # Create a console handler
+# console_handler = logging.StreamHandler()
+# console_handler.setLevel(logging.DEBUG)  # Set the level for the console handler
+
+# # Create a formatter and attach it to the console handler
+# formatter = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
+# console_handler.setFormatter(formatter)
+
+# # Add the console handler to the logger
+# logger.addHandler(console_handler)
+
+
+# helper coroutine to setup and manage the logger
+async def init_logger():
+    # get the root logger
+    log = logging.getLogger("BLEScanner")
+    # create the shared queue
+    que = Queue()
+    # add a handler that uses the shared queue
+    que_handler = QueueHandler(que)
+    # # Create a formatter and attach it to the que_handler
+    formatter = logging.Formatter(
+        "* Async Queue %(asctime)s [%(levelname)s]: %(message)s"
+    )
+    que_handler.setFormatter(formatter)
+    log.addHandler(que_handler)
+    # log all messages, debug and up
+    log.setLevel(logging.ERROR)
+    console_handler = logging.StreamHandler()
+    # # Create a formatter and attach it to the console handler
+    # formatter = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
+    # console_handler.setFormatter(formatter)
+    # create a listener for messages on the queue
+    listener = QueueListener(que, console_handler)
+    try:
+        # start the listener
+        listener.start()
+        # report the logger is ready
+        log.debug(f"Logger has started")
+        # wait forever
+        while True:
+            await asyncio.sleep(60)
+    finally:
+        # report the logger is done
+        logger.debug(f"Logger is shutting down")
+        # ensure the listener is closed
+        listener.stop()
+
+    # reference to the logger task
+
+
+LOGGER_TASK = None
+
+def modules_init_logger():
+    import sys
+    modules = ["notifications", "blescanner"]
+    for module_name in modules:
+        try:
+            # Check if the module is already imported
+            if module_name in sys.modules:
+                module = sys.modules[module_name]  # Get the module from sys.modules
+
+                # Call the init_logger method if it exists
+                if hasattr(module, "init_logger"):
+                    getattr(module, "init_logger")()  # Calls module.init_logger()
+                else:
+                    print(f"Module {module_name} does not have 'init_logger' method.")
+            else:
+                print(f"Module {module_name} is not imported.")
+        except Exception as e:
+            print(f"Error calling 'init_logger' in module {module_name}: {e}")
+
+# coroutine to safely start the logger
+async def safely_start_logger():
+    # initialize the logger
+    global LOGGER_TASK
+    LOGGER_TASK = asyncio.create_task(init_logger())
+    # allow the logger to start
+    await asyncio.sleep(0)
+    
 
 async def main(
     custom_names: dict = None,
@@ -37,6 +121,9 @@ async def main(
     sent_theshold_temp: float = None,
     mode: str = None,
 ):
+    await safely_start_logger()
+    # log a message
+    logging.info(f"Main is starting")
     output = ConsolePrint()
     notification = [LoggerNotification(), DicordNotification()]
     scanner = BLEScanner(
@@ -62,7 +149,7 @@ async def main(
     params.append(f"use_text_pos={use_text_pos}")
 
     message = ", ".join(params)
-    LoggerNotification.send_alert(title="BLE Scanner started with:", message=message)
+    logging.info(f"BLE Scanner started with: {message}")
     try:
         await scanner.start_scanning()
     except asyncio.CancelledError:
@@ -132,7 +219,7 @@ if __name__ == "__main__":
                 logger.error(f"Invalid entry format: {entry}. Expected KEY=VALUE.")
 
     # if custom_names:
-    #     logger.debug(f"Custom Names: {custom_names}")
+    logger.debug(f"Custom Names: {custom_names}")
 
     asyncio.run(
         main(
