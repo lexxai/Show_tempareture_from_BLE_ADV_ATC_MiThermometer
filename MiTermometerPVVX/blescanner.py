@@ -156,6 +156,10 @@ class BLEScanner:
         )
         self.monitor_thresholds(self.get_device_name(device.address), temp)
 
+    def clear_lines(self, lines: int = 1):
+        if self.use_text_pos:
+            self.output.clear_lines(lines)
+
     def output_cols(func):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
@@ -175,7 +179,6 @@ class BLEScanner:
             if address is not None:
                 self.shift_text_pos(dy=2)
                 self.set_text_pos(x=0)
-                self.print_text("")
 
         return wrapper
 
@@ -236,6 +239,8 @@ class BLEScanner:
                 name, temp, threshold_type=2, threshold_value=self.alert_high_threshold
             )
         if title or message:
+            self.clear_lines(7)
+            self.print_text("")
             self.send_alert(title, message)
 
     def send_alert(

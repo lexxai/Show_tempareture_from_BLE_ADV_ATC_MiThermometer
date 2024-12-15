@@ -20,6 +20,8 @@ class PrintAbstract(ABC):
     @abstractmethod
     def clear(self) -> None: ...
 
+    def clear_lines(self, lines: int = 1): ...
+
 
 class LoggerNotification(NotificationAbstract):
     def send_alert(self, title: str = None, message: str = None) -> None:
@@ -71,3 +73,7 @@ class ConsolePrint(PrintAbstract):
 
     def clear(self):
         print("\033c\033[3J")
+
+    def clear_lines(self, lines: int = 1):
+        for _ in range(lines):
+            print("\033[K")
