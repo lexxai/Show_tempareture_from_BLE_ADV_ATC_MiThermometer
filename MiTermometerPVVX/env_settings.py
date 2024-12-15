@@ -14,6 +14,16 @@ class Settings:
                 cls._instance._initialize()
         return cls._instance
 
+    def _load_custom_names(self):
+        custom_names = {}
+        prefix = "NAME_"
+        for key, value in os.environ.items():
+            if key.startswith(prefix):
+                # Remove the prefix and use the remaining part as the key
+                shortened_key = key[len(prefix) :]
+                custom_names[shortened_key] = value
+        return custom_names
+
     def _initialize(self):
         # Load .env file
         load_dotenv()
@@ -24,6 +34,12 @@ class Settings:
             "F6ED7A": "MAIN ROOM",
             "995B": "MAIN ROOM",
         }
+
+        self.ATC_CUSTOM_NAMES = self._load_custom_names()
+
+        self.ALERT_LOW_THRESHOLD = os.getenv("ALERT_LOW_THRESHOLD")
+        self.ALERT_HIGH_THRESHOLD = os.getenv("ALERT_HIGH_THRESHOLD")
+        self.SENT_TRGESHOLD_TEMP = os.getenv("SENT_TRGESHOLD_TEMP", 1.0)
 
         self.DISCORD_WEB_HOOKS = os.getenv("DISCORD_WEB_HOOKS")
 

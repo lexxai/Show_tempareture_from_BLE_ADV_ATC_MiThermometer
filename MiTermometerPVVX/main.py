@@ -34,6 +34,7 @@ async def main(
     alert_low_threshold: float = None,
     alert_high_threshold: float = None,
     use_text_pos: bool = False,
+    sent_theshold_temp: float = None,
 ):
     output = ConsolePrint()
     notification = [LoggerNotification(), DicordNotification()]
@@ -44,15 +45,17 @@ async def main(
         alert_low_threshold=alert_low_threshold,
         alert_high_threshold=alert_high_threshold,
         use_text_pos=use_text_pos,
+        sent_theshold_temp=sent_theshold_temp,
     )
     params = []
     if custom_names:
         params.append(f"custom_names={custom_names}")
     if alert_low_threshold:
         params.append(f"alert_low_threshold={alert_low_threshold}")
-
     if alert_high_threshold:
         params.append(f"alert_high_threshold={alert_high_threshold}")
+    if sent_theshold_temp:
+        params.append(f"sent_theshold_temp={sent_theshold_temp}")
 
     params.append(f"use_text_pos={use_text_pos}")
 
@@ -67,28 +70,39 @@ async def main(
 
 if __name__ == "__main__":
 
-    custom_names_default = " ".join(
-        [f"{key}='{value}'" for key, value in settings.ATC_CUSTOM_NAMES.items()]
+    custom_names_default = (
+        " ".join(
+            [f"{key}='{value}'" for key, value in settings.ATC_CUSTOM_NAMES.items()]
+        )
+        or "not used"
     )
     # Parse arguments
     parser = argparse.ArgumentParser(
-        description="Show temperature and humidity from BLE ADV 'ATC MiThermometer'"
+        description="Show temperature and humidity from BLE ADV 'ATC MiThermometer' and alarm on temperature."
     )
     parser.add_argument(
-        "--atc-names",
+        "--names",
         nargs="+",
-        help=f'Define custom ATC names in the format KEY=VALUE, where KEY can match with end of device name (e.g., ATC_12345="OUTSIDE"). Default is "{custom_names_default}".',
+        help=f'Define custom names in the format KEY=VALUE, where KEY can match with end of device name (e.g., 12345="OUTSIDE"). Default is {custom_names_default}.',
     )
     parser.add_argument(
         "--alert-low-threshold",
-        type=float,
-        help=f"Set the temperature alert threshold less than (e.g., 5.0 for 5°C). Default is {BLEScanner.ALERT_LOW_THRESHOLD}°C.",
+        type=lambda x: float(x) if x.lower() != "none" else None,
+        default=settings.ALERT_LOW_THRESHOLD,
+        help=f"Set the temperature alert threshold less than (e.g., 5.0 for 5°C). Use 'None' to disable. Default is {settings.ALERT_LOW_THRESHOLD}.",
     )
 
     parser.add_argument(
         "--alert-high-threshold",
+        type=lambda x: float(x) if x.lower() != "none" else None,
+        default=settings.ALERT_HIGH_THRESHOLD,
+        help=f"Set the temperature alert threshold higher than (e.g., 40.0 for 40°C). Use 'None' to disable.  Default is {settings.ALERT_HIGH_THRESHOLD}.",
+    )
+    parser.add_argument(
+        "--sent_theshold_temp",
         type=float,
-        help=f"Set the temperature alert threshold higher than (e.g., 40.0 for 40°C). Default is {BLEScanner.ALERT_HIGH_THRESHOLD}°C.",
+        default=settings.SENT_TRGESHOLD_TEMP,
+        help=f"Set the delta temperature alert threshold for send next notification. Default is {settings.SENT_TRGESHOLD_TEMP}.",
     )
     parser.add_argument(
         "--disable_text_pos",
@@ -100,17 +114,17 @@ if __name__ == "__main__":
 
     # Parse the provided ATC names into a dictionary
     custom_names = None
-    if args.atc_names:
+    if args.names:
         custom_names = {}
-        for entry in args.atc_names:
+        for entry in args.names:
             try:
                 key, value = entry.split("=")
                 custom_names[key.strip()] = value.strip()
             except ValueError:
                 logger.error(f"Invalid entry format: {entry}. Expected KEY=VALUE.")
 
-    if custom_names:
-        logger.debug(f"Custom ATC Names: {custom_names}")
+    # if custom_names:
+    #     logger.debug(f"Custom Names: {custom_names}")
 
     asyncio.run(
         main(
@@ -118,5 +132,6 @@ if __name__ == "__main__":
             alert_low_threshold=args.alert_low_threshold,
             alert_high_threshold=args.alert_high_threshold,
             use_text_pos=args.disable_text_pos,
+            sent_theshold_temp=args.sent_theshold_temp,
         )
     )

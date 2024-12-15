@@ -13,8 +13,6 @@ logger = logging.getLogger(f"BLEScanner.{__name__}")
 
 class BLEScanner:
     # Set the temperature thresholds (in °C) for alerts
-    ALERT_LOW_THRESHOLD = 6.0
-    ALERT_HIGH_THRESHOLD = 36.0
     COLS = 4
     TEXT_WIDTH = 30
     LINE_HEIGHT = 5
@@ -28,6 +26,7 @@ class BLEScanner:
         custom_names: dict = None,
         alert_high_threshold: float = None,
         use_text_pos: bool = True,
+        sent_theshold_temp: float = SENT_TRGESHOLD_TEMP,
     ):
         self.output = output or ConsolePrint()
         self.ATC_SERVICE = "0000181a-0000-1000-8000-00805f9b34fb"
@@ -37,11 +36,12 @@ class BLEScanner:
         self.atc_custom_names = custom_names or {}
         self.atc_devices = {}
         self.print_pos = {"x": 0, "y": 0}
-        self.alert_low_threshold = alert_low_threshold or self.ALERT_LOW_THRESHOLD
-        self.alert_high_threshold = alert_high_threshold or self.ALERT_HIGH_THRESHOLD
+        self.alert_low_threshold = alert_low_threshold
+        self.alert_high_threshold = alert_high_threshold
         self.notification = notification
         self.use_text_pos = use_text_pos
         self.cache_sented_alert = {}
+        self.sent_theshold_temp = sent_theshold_temp
         assert self.output is not None, "Output is not set"
 
     def set_text_pos(self, x: int = None, y: int = None) -> None:
@@ -250,7 +250,7 @@ class BLEScanner:
         """
         if self.cache_sented_alert.get(name):
             delta_temp = abs(self.cache_sented_alert[name] - temp)
-            if delta_temp > self.SENT_TRGESHOLD_TEMP:
+            if delta_temp > self.sent_theshold_temp:
                 self.cache_sented_alert[name] = temp
                 return True
             else:
