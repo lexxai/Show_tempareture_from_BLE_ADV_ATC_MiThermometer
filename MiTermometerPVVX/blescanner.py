@@ -267,21 +267,19 @@ class BLEScanner:
         message: str = None,
     ) -> None:
         """Sends an alert message."""
-        if not self.notification:
+        if not self.notification or len(self.notification) == 0:
             logger.warning("Notification is not available.")
             return
         try:
-            if isinstance(self.notification, list):
-                for n in self.notification:
-                    if n.is_async:
-                        await n.send_alert_async(title, message)
-                    else:
-                        n.send_alert(title, message)
-            else:
-                if self.notification.is_async:
-                    await self.notification.send_alert_async(title, message)
+            if not isinstance(self.notification, list):
+                self.notification = [self.notification]
+
+            for n in self.notification:
+                if n.is_async:
+                    await n.send_alert(title, message)
                 else:
-                    self.notification.send_alert(title, message)
+                    n.send_alert(title, message)
+
         except Exception as e:
             logger.error(f"Notification failed: {e}")
 

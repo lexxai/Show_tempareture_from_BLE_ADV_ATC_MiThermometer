@@ -9,17 +9,13 @@ logger = logging.getLogger(f"BLEScanner.{__name__}")
 
 
 class NotificationAbstract(ABC):
-
     is_async = False
-
-    async def send_alert_async(self, title: str = None, message: str = None) -> None:
-        """Sends async an alert message."""
-        ...
 
     @abstractmethod
     def send_alert(self, title: str = None, message: str = None) -> None:
         """Sends an alert message."""
         ...
+
 
 class LoggerNotification(NotificationAbstract):
     @staticmethod
@@ -32,6 +28,7 @@ class LoggerNotification(NotificationAbstract):
             logger.info(f"Message: {message}")
         logger.info("*** END LOGGER NOTIFICATION ***")
 
+
 class PrintNotification(NotificationAbstract):
     def send_alert(self, title: str = None, message: str = None) -> None:
         """Sends an alert message."""
@@ -42,15 +39,17 @@ class PrintNotification(NotificationAbstract):
             print(f"Message: {message}")
         print("*** END PRINT NOTIFICATION ***\n")
 
+
 class DicordNotification(NotificationAbstract):
     is_async = True
-    async def send_alert_async(self, title: str = None, message: str = None) -> None:
+
+    async def send_alert(self, title: str = None, message: str = None) -> None:
         """Sends an alert message."""
         discord_message = f"{title}\n{message}"
         await discors_send_message(discord_message)
 
-    def send_alert(self, title: str = None, message: str = None) -> None:
-        logger.error("DicordNotification is not available in sync.")
+    # def send_alert(self, title: str = None, message: str = None) -> None:
+    #     logger.error("DicordNotification is not available in sync.")
 
 
 class SystemNotification(NotificationAbstract):
