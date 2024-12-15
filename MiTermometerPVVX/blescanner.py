@@ -275,7 +275,7 @@ class BLEScanner:
     ) -> None:
         """Sends an alert message."""
         if not self.notification or len(self.notification) == 0:
-            logger.warning("Notification is not available.")
+            # logger.warning("Notification is not available.")
             return
         try:
             if not isinstance(self.notification, list):

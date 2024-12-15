@@ -8,9 +8,11 @@ from discord_api import send_message as discors_send_message
 logger = logging.getLogger(f"BLEScanner.{__name__}")
 # logger = None
 
+
 def init_logger():
     global logger
     logger = logging.getLogger(f"BLEScanner.{__name__}")
+
 
 class NotificationAbstract(ABC):
     is_async = False
@@ -19,6 +21,9 @@ class NotificationAbstract(ABC):
     def send_alert(self, title: str = None, message: str = None) -> None:
         """Sends an alert message."""
         ...
+
+    def __str__(self):
+        return f"{self.__class__.__name__.split('Notification')[0].lower() or self.__class__.__name__}"
 
 
 class LoggerNotification(NotificationAbstract):
@@ -44,7 +49,7 @@ class PrintNotification(NotificationAbstract):
         print("*** END PRINT NOTIFICATION ***\n")
 
 
-class DicordNotification(NotificationAbstract):
+class DiscordNotification(NotificationAbstract):
     is_async = True
 
     async def send_alert(self, title: str = None, message: str = None) -> None:

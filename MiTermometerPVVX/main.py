@@ -7,7 +7,7 @@ from queue import Queue
 from env_settings import settings
 
 from notifications import (
-    DicordNotification,
+    DiscordNotification,
     LoggerNotification,
 )
 
@@ -15,13 +15,21 @@ from outputs import ConsolePrint
 
 from blescanner import BLEScanner
 
-logger = logging.getLogger("_BLEScanner")
-logger.setLevel(logging.ERROR)
-console_handler = logging.StreamHandler()
-# console_handler.setLevel(logging.ERROR)
-formatter = logging.Formatter("* SYNC MAIN %(asctime)s [%(levelname)s]: %(message)s")
-console_handler.setFormatter(formatter)
-logger.addHandler(console_handler)
+try:
+    REGISTERED_NOTIFICATIONS = [LoggerNotification(), DiscordNotification()]
+except NameError as e:
+    print(f"Error registering notifications: {e} {type(e)}")
+    REGISTERED_NOTIFICATIONS = []
+
+# print(f"Registered notifications: {[str(n) for n in REGISTERED_NOTIFICATIONS]}")
+
+# logger = logging.getLogger("_BLEScanner")
+# logger.setLevel(logging.ERROR)
+# console_handler = logging.StreamHandler()
+# # console_handler.setLevel(logging.ERROR)
+# formatter = logging.Formatter("* SYNC MAIN %(asctime)s [%(levelname)s]: %(message)s")
+# console_handler.setFormatter(formatter)
+# logger.addHandler(console_handler)
 
 # # Ensure child loggers propagate messages
 # for child_logger_name in ["BLEScanner.notifications", "BLEScanner.blescanner"]:
@@ -59,13 +67,14 @@ async def init_logger():
     que_handler.setFormatter(formatter)
     log.addHandler(que_handler)
     # log all messages, debug and up
-    log.setLevel(logging.ERROR)
+    log.setLevel(logging.DEBUG)
     console_handler = logging.StreamHandler()
+    # console_handler.setLevel(logging.ERROR)
     # # Create a formatter and attach it to the console handler
     # formatter = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
     # console_handler.setFormatter(formatter)
     # create a listener for messages on the queue
-    listener = QueueListener(que, console_handler)
+    listener = QueueListener(que, logging.StreamHandler())
     try:
         # start the listener
         listener.start()
@@ -76,7 +85,7 @@ async def init_logger():
             await asyncio.sleep(60)
     finally:
         # report the logger is done
-        logger.debug(f"Logger is shutting down")
+        log.debug(f"Logger is shutting down")
         # ensure the listener is closed
         listener.stop()
 
@@ -85,8 +94,10 @@ async def init_logger():
 
 LOGGER_TASK = None
 
+
 def modules_init_logger():
     import sys
+
     modules = ["notifications", "blescanner"]
     for module_name in modules:
         try:
@@ -104,14 +115,15 @@ def modules_init_logger():
         except Exception as e:
             print(f"Error calling 'init_logger' in module {module_name}: {e}")
 
+
 # coroutine to safely start the logger
 async def safely_start_logger():
     # initialize the logger
     global LOGGER_TASK
     LOGGER_TASK = asyncio.create_task(init_logger())
     # allow the logger to start
-    await asyncio.sleep(0)
-    
+    await asyncio.sleep(1)
+
 
 async def main(
     custom_names: dict = None,
@@ -120,15 +132,25 @@ async def main(
     use_text_pos: bool = False,
     sent_theshold_temp: float = None,
     mode: str = None,
+    notification: list[str] = None,
 ):
     await safely_start_logger()
     # log a message
     logging.info(f"Main is starting")
     output = ConsolePrint()
-    notification = [LoggerNotification(), DicordNotification()]
+    _notification = []
+    # Build list of selected notifications
+    registered_names = [str(n) for n in REGISTERED_NOTIFICATIONS]
+    for n in notification:
+        if n in registered_names:
+            _notification.append(n)
+    if len(_notification) == 0:
+        _notification = None
+    print(f"Selected notification: {_notification}")
+    # _notification = [LoggerNotification(), DicordNotification()]
     scanner = BLEScanner(
         output=output,
-        notification=notification,
+        notification=_notification,
         custom_names=custom_names,
         alert_low_threshold=alert_low_threshold,
         alert_high_threshold=alert_high_threshold,
@@ -204,6 +226,18 @@ if __name__ == "__main__":
         default="auto",
         help="Select scan mode. Default is 'auto'.",
     )
+    notification_registered_cooise = [str(n) for n in REGISTERED_NOTIFICATIONS]
+    notification_registered_cooise.append("none")
+    notification_registered_default = notification_registered_cooise[0:1]
+    parser.add_argument(
+        "--notification",
+        nargs="+",
+        choices=notification_registered_cooise,
+        default=notification_registered_default,
+        help=(
+            f"Select notification mode as individualy as and multiple. Default is '{notification_registered_default[0]}'. "
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -216,10 +250,10 @@ if __name__ == "__main__":
                 key, value = entry.split("=")
                 custom_names[key.strip()] = value.strip()
             except ValueError:
-                logger.error(f"Invalid entry format: {entry}. Expected KEY=VALUE.")
+                logging.error(f"Invalid entry format: {entry}. Expected KEY=VALUE.")
 
     # if custom_names:
-    logger.debug(f"Custom Names: {custom_names}")
+    logging.info(f"Custom Names: {custom_names}")
 
     asyncio.run(
         main(
@@ -229,5 +263,6 @@ if __name__ == "__main__":
             use_text_pos=args.disable_text_pos,
             sent_theshold_temp=args.sent_theshold_temp,
             mode=args.mode,
+            notification=args.notification,
         )
     )
