@@ -27,8 +27,12 @@ logger.addHandler(console_handler)
 
 
 class BLEScanner:
-    ALERT_LOW_THRESHOLD = 6.0  # Set the temperature threshold lower (in °C) for alerts
-    ALERT_HIGH_THRESHOLD = 36.0  # Set the temperature threshold higher (in °C) for alerts
+    # Set the temperature thresholds (in °C) for alerts
+    ALERT_LOW_THRESHOLD = 6.0
+    ALERT_HIGH_THRESHOLD = 16.0
+    COLS = 4
+    TEXT_WIDTH = 24
+
     ATC_CUSTOM_NAMES = {
         "5EDB77": "OUTSIDE ROOM",
         "F6ED7A": "MAIN ROOM",
@@ -51,35 +55,48 @@ class BLEScanner:
         self.atc_custom_names = custom_names or self.ATC_CUSTOM_NAMES.copy()
         self.atc_devices = {}
         self.print_pos = {"x": 0, "y": 0}
-        self.alert_threshold = alert_low_threshold or self.ALERT_LOW_THRESHOLD
+        self.alert_low_threshold = alert_low_threshold or self.ALERT_LOW_THRESHOLD
+        self.alert_high_threshold = alert_high_threshold or self.ALERT_HIGH_THRESHOLD
         self.notification = notification
         assert self.output is not None, "Output is not set"
 
-    def print_text_pos(self, x: int, y: int) -> None:
+    def print_text_pos(self, x: int = None, y: int = None) -> None:
         """Set the print cursor position."""
-        self.print_pos["x"] = x
-        self.print_pos["y"] = y
+        if x is not None:
+            self.print_pos["x"] = x
+        if y is not None:
+            self.print_pos["y"] = y
+
+    def shift_text_pos(self, dx: int = None, dy: int = None) -> None:
+        if dx:
+            self.print_pos["x"] += dx
+        if dy:
+            self.print_pos["y"] += dy
+
+    def get_pos_dict(self) -> dict:
+        return {"x": self.print_pos["x"], "y": self.print_pos["y"]}
 
     def print_text(self, text: str) -> None:
         """Print text at the current cursor position."""
-        self.output.print_value(
-            "\033["
-            + str(self.print_pos["y"])
-            + ";"
-            + str(self.print_pos["x"])
-            + "H"
-            + text
-        )
-        self.print_pos["y"] += 1
+        self.output.print_value(text, pos=self.get_pos_dict())
+        # self.output.print_value(
+        #     "\033["
+        #     + str(self.print_pos["y"])
+        #     + ";"
+        #     + str(self.print_pos["x"])
+        #     + "H"
+        #     + text
+        # )
+        self.shift_text_pos(dy=1)
 
     def print_clear(self) -> None:
         """Clear the terminal screen."""
-        self.output.print_value("\033c\033[3J")
+        self.output.clear()
 
     def custom_name(self, name: str) -> str:
         """Replace default device name with a custom one if available."""
         for template, custom_name in self.atc_custom_names.items():
-            if name == template or name.endswith(template):
+            if name.endswith(template) or name == template:
                 return custom_name
         return name
 
@@ -163,8 +180,8 @@ class BLEScanner:
         id = device_info["id"]
         name = device_info["name"]
 
-        cols = 4
-        text_width = 22
+        cols = self.COLS
+        text_width = self.TEXT_WIDTH
         pos_x = text_width * (id % cols)
         pos_y = 5 * (id // cols) + 1
         self.print_text_pos(pos_x, pos_y)
@@ -179,15 +196,45 @@ class BLEScanner:
         self.print_text(f"Last Seen: {date_now.strftime('%H:%M:%S')}")
         if date_diff:
             self.print_text(f"Duration: {date_diff}")
+        self.print_pos["y"] += 2
+        self.print_pos["x"] = 0
+        self.print_text("")
+        self.monitor_thresholds(name, temp)
 
-        # Trigger alert if temperature is below the threshold
-        if self.alert_threshold and temp < self.alert_threshold:
-            self.send_alert(name, temp)
-
-    def send_alert(
+    def generate_title_message(
         self,
         device_name: str = None,
         temp: float = None,
+        threshold_type: int = 0,  # 0 = lower, 2 - higher
+        threshold_value: float = None,
+    ) -> tuple:
+        device_name = device_name or "Unknown Device"
+        threshold_text = "lower" if threshold_type == 0 else "higher"
+        threshold_value_text = (
+            f"{threshold_value} °C" if threshold_value else "threshold value"
+        )
+        title = f"Temperature Alert for {threshold_text} than {threshold_value_text}"
+        message = f"{device_name}: {temp:.2f} °C" if temp else None
+
+        return title, message
+
+    def monitor_thresholds(self, name, temp):
+        title, message = None, None
+        # Trigger alert if temperature is below the threshold
+        if self.alert_low_threshold is not None and temp <= self.alert_low_threshold:
+            title, message = self.generate_title_message(
+                name, temp, threshold_type=0, threshold_value=self.alert_low_threshold
+            )
+        # Trigger alert if temperature is higher than the threshold
+        if self.alert_high_threshold is not None and temp >= self.alert_high_threshold:
+            title, message = self.generate_title_message(
+                name, temp, threshold_type=2, threshold_value=self.alert_high_threshold
+            )
+        if title or message:
+            self.send_alert(title, message)
+
+    def send_alert(
+        self,
         title: str = None,
         message: str = None,
     ) -> None:
@@ -195,25 +242,8 @@ class BLEScanner:
         if not self.notification:
             logger.warning("Notification is not available.")
             return
-
-        device_name = device_name or "Unknown Device"
-        temp = temp or 999.99
-        alert_title = (
-            title or f"Temperature Alert for less than {self.alert_threshold}C"
-        )
-        alert_message = message or f"{device_name}: {temp:.2f} °C"
-        # self.output.print_value("\n*** ALERT: Temperature below threshold ***")
-        # self.output.print_value(f"Device: {device_name}")
-        # self.output.print_value(f"Temperature: {temp:.2f} °C")
-
         try:
-            self.notification.send_alert(alert_title, alert_message)
-            # Using plyer for cross-platform notifications
-            # notification.notify(
-            #     title=alert_title,
-            #     message=alert_message,
-            #     timeout=10,  # Notification will disappear after 10 seconds
-            # )
+            self.notification.send_alert(title, message)
         except Exception as e:
             logger.error(f"Notification failed: {e}")
 
@@ -240,8 +270,11 @@ async def main(
     output = ConsolePrint()
     notification = LoggerNotification()
     scanner = BLEScanner(
-        output=output, notification=notification, custom_names=custom_names,alert_low_threshold=alert_low_threshold,
-    alert_high_threshold=alert_high_threshold,
+        output=output,
+        notification=notification,
+        custom_names=custom_names,
+        alert_low_threshold=alert_low_threshold,
+        alert_high_threshold=alert_high_threshold,
     )
     scanner.send_alert(title="MAIN", message="Start scanning")
     try:
@@ -293,7 +326,10 @@ if __name__ == "__main__":
     if custom_names:
         logger.debug(f"Custom ATC Names: {custom_names}")
 
-    asyncio.run( 
-        main(custom_names=custom_names, alert_low_threshold=args.alert_low_threshold, alert_high_threshold=args.alert_high_threshold)
-    )  
-
+    asyncio.run(
+        main(
+            custom_names=custom_names,
+            alert_low_threshold=args.alert_low_threshold,
+            alert_high_threshold=args.alert_high_threshold,
+        )
+    )
