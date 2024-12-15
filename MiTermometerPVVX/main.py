@@ -56,7 +56,7 @@ async def main(
     params.append(f"use_text_pos={use_text_pos}")
 
     message = ", ".join(params)
-    scanner.send_alert(title="BLE Scanner started with:", message=message)
+    LoggerNotification.send_alert(title="BLE Scanner started with:", message=message)
     try:
         await scanner.start_scanning()
     except asyncio.CancelledError:
