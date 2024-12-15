@@ -33,7 +33,8 @@ class PrintAbstract(ABC):
 
 
 class LoggerNotification(NotificationAbstract):
-    def send_alert(self, title: str = None, message: str = None) -> None:
+    @staticmethod
+    def send_alert(title: str = None, message: str = None) -> None:
         """Sends an alert message."""
         logger.info("*** START LOGGER NOTIFICATION ***")
         if title:
