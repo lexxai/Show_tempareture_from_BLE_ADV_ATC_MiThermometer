@@ -45,11 +45,14 @@ class DicordNotification(NotificationAbstract):
 
     async def send_alert(self, title: str = None, message: str = None) -> None:
         """Sends an alert message."""
-        discord_message = f"{title}\n{message}"
-        await discors_send_message(discord_message)
+        msg_list = []
+        if title:
+            msg_list.append(title)
+        if message:
+            msg_list.append(message)
 
-    # def send_alert(self, title: str = None, message: str = None) -> None:
-    #     logger.error("DicordNotification is not available in sync.")
+        discord_message = "\n".join(msg_list)
+        await discors_send_message(discord_message)
 
 
 class SystemNotification(NotificationAbstract):
