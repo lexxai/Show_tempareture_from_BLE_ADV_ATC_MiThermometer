@@ -253,7 +253,11 @@ class BLEScanner:
             logger.warning("Notification is not available.")
             return
         try:
-            self.notification.send_alert(title, message)
+            if isinstance(self.notification, list):
+                for n in self.notification:
+                    n.send_alert(title, message)
+            else:
+                self.notification.send_alert(title, message)
         except Exception as e:
             logger.error(f"Notification failed: {e}")
 
