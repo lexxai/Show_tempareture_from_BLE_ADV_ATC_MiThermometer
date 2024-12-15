@@ -47,6 +47,7 @@ class BLEScanner:
         alert_low_threshold: float = None,
         custom_names: dict = None,
         alert_high_threshold: float = None,
+        use_text_pos: bool = True,
     ):
         self.output = output or ConsolePrint()
         self.ATC_SERVICE = "0000181a-0000-1000-8000-00805f9b34fb"
@@ -59,7 +60,7 @@ class BLEScanner:
         self.alert_low_threshold = alert_low_threshold or self.ALERT_LOW_THRESHOLD
         self.alert_high_threshold = alert_high_threshold or self.ALERT_HIGH_THRESHOLD
         self.notification = notification
-        self.use_text_pos = False
+        self.use_text_pos = use_text_pos
         assert self.output is not None, "Output is not set"
 
     def set_text_pos(self, x: int = None, y: int = None) -> None:
@@ -264,6 +265,7 @@ async def main(
     custom_names: dict = None,
     alert_low_threshold: float = None,
     alert_high_threshold: float = None,
+    use_text_pos: bool = False,
 ):
     output = ConsolePrint()
     notification = LoggerNotification()
@@ -273,6 +275,7 @@ async def main(
         custom_names=custom_names,
         alert_low_threshold=alert_low_threshold,
         alert_high_threshold=alert_high_threshold,
+        use_text_pos=use_text_pos,
     )
     params = []
     if custom_names:
@@ -282,6 +285,8 @@ async def main(
 
     if alert_high_threshold:
         params.append(f"alert_high_threshold={alert_high_threshold}")
+
+    params.append(f"use_text_pos={use_text_pos}")
 
     message = ", ".join(params)
     scanner.send_alert(title="BLE Scanner started with:", message=message)
@@ -317,6 +322,11 @@ if __name__ == "__main__":
         type=float,
         help=f"Set the temperature alert threshold higher than (e.g., 40.0 for 40°C). Default is {BLEScanner.ALERT_HIGH_THRESHOLD}°C.",
     )
+    parser.add_argument(
+        "--disable_text_pos",
+        help=f"Used when need to disable use text position and use plain print. Default is enabled.",
+        action="store_false",
+    )
 
     args = parser.parse_args()
 
@@ -339,5 +349,6 @@ if __name__ == "__main__":
             custom_names=custom_names,
             alert_low_threshold=args.alert_low_threshold,
             alert_high_threshold=args.alert_high_threshold,
+            use_text_pos=args.disable_text_pos,
         )
     )
