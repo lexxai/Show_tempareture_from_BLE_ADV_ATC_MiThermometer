@@ -6,7 +6,7 @@ from env_settings import settings
 
 # In-memory cache to track recently sent messages
 _sent_messages_cache = {}
-LIMIT_INTERVAL = 60 * 60 * 24
+LIMIT_INTERVAL = 60 * 60 * 1
 CLEANUP_INTERVAL = LIMIT_INTERVAL + 100
 
 logger = logging.getLogger(f"BLEScanner.{__name__}")
@@ -68,7 +68,7 @@ def _cleanup_cache(current_time: float, interval: int):
     print(f"Cleaned up {len(keys_to_delete)} stale entries from the cache.")
 
 
-@limit_repeated_messages(interval=LIMIT_INTERVAL)
+# @limit_repeated_messages(interval=LIMIT_INTERVAL)
 async def send_message(message: str, tts: bool = False) -> bool | None:
     web_hook = settings.DISCORD_WEB_HOOKS
     # print(f"Sending message: {message} {web_hook=}")
