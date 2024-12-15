@@ -19,7 +19,7 @@ class BLEScanner:
     ALERT_LOW_THRESHOLD = 6.0
     ALERT_HIGH_THRESHOLD = 36.0
     COLS = 4
-    TEXT_WIDTH = 24
+    TEXT_WIDTH = 30
     LINE_HEIGHT = 5
 
     def __init__(
@@ -233,7 +233,7 @@ class BLEScanner:
                 name, temp, threshold_type=2, threshold_value=self.alert_high_threshold
             )
         if title or message:
-            self.clear_lines(7)
+            self.clear_lines(10)
             self.print_text("")
             await self.send_alert(title, message)
 
