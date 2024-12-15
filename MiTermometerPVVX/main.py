@@ -2,9 +2,12 @@ import argparse
 import asyncio
 import logging
 
+from env_settings import settings
+
 from abstract import (
     ConsolePrint,
     LoggerNotification,
+    PrintNotification,
 )
 
 from blescanner import BLEScanner
@@ -32,7 +35,7 @@ async def main(
     use_text_pos: bool = False,
 ):
     output = ConsolePrint()
-    notification = LoggerNotification()
+    notification = [LoggerNotification(), PrintNotification()]
     scanner = BLEScanner(
         output=output,
         notification=notification,
@@ -64,7 +67,7 @@ async def main(
 if __name__ == "__main__":
 
     custom_names_default = " ".join(
-        [f"{key}='{value}'" for key, value in BLEScanner.ATC_CUSTOM_NAMES.items()]
+        [f"{key}='{value}'" for key, value in settings.ATC_CUSTOM_NAMES.items()]
     )
     # Parse arguments
     parser = argparse.ArgumentParser(
@@ -110,7 +113,7 @@ if __name__ == "__main__":
 
     asyncio.run(
         main(
-            custom_names=custom_names,
+            custom_names=custom_names or settings.ATC_CUSTOM_NAMES,
             alert_low_threshold=args.alert_low_threshold,
             alert_high_threshold=args.alert_high_threshold,
             use_text_pos=args.disable_text_pos,

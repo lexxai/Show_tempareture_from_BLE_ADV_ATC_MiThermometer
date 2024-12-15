@@ -22,12 +22,6 @@ class BLEScanner:
     TEXT_WIDTH = 24
     LINE_HEIGHT = 5
 
-    ATC_CUSTOM_NAMES = {
-        "5EDB77": "OUTSIDE ROOM",
-        "F6ED7A": "MAIN ROOM",
-        "995B": "MAIN ROOM",
-    }
-
     def __init__(
         self,
         output: PrintAbstract = None,
@@ -42,7 +36,7 @@ class BLEScanner:
         self.stop_event = asyncio.Event()
         self.atc_counters = {}
         self.atc_date = {}
-        self.atc_custom_names = custom_names or self.ATC_CUSTOM_NAMES.copy()
+        self.atc_custom_names = custom_names or {}
         self.atc_devices = {}
         self.print_pos = {"x": 0, "y": 0}
         self.alert_low_threshold = alert_low_threshold or self.ALERT_LOW_THRESHOLD
@@ -199,7 +193,7 @@ class BLEScanner:
         name = self.get_device_name(address)
 
         self.print_text(f"Device: {name}")
-        self.print_text("-" * 18)
+        self.print_text("-" * 21)
         self.print_text(f"Temp: {temp:.2f}°C")
         self.print_text(f"Humidity: {humidity:.2f}%")
         self.print_text(f"Battery: {battery}% ({battery_v}V)")
