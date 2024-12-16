@@ -8,14 +8,7 @@ from notifications import NotificationAbstract, RegisteredNotifications
 
 from outputs import ConsolePrint, PrintAbstract
 
-logger = logging.getLogger(f"asyncio.BLEScanner.{__name__}")
-# logger = None
-
-
-def init_logger():
-    global logger
-    logger = logging.getLogger(f"BLEScanner.{__name__}")
-
+logger = logging.getLogger(f"BLEScanner.{__name__}")
 
 class BLEScanner:
     # Set the temperature thresholds (in °C) for alerts

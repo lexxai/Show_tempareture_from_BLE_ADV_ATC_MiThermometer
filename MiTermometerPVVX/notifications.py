@@ -5,13 +5,7 @@ from discord_api import send_message as discors_send_message
 
 # from plyer import notification
 
-logger = logging.getLogger(f"asyncio.BLEScanner.{__name__}")
-# logger = None
-
-
-def init_logger():
-    global logger
-    logger = logging.getLogger(f"BLEScanner.{__name__}")
+logger = logging.getLogger(f"BLEScanner.{__name__}")
 
 
 class NotificationAbstract(ABC):

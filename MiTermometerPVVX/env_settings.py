@@ -28,13 +28,7 @@ class Settings:
         # Load .env file
         load_dotenv()
 
-        # Read settings from environment
-        self.ATC_CUSTOM_NAMES = {
-            "5EDB77": "OUTSIDE ROOM",
-            "F6ED7A": "MAIN ROOM",
-            "995B": "MAIN ROOM",
-        }
-
+        self.DEBUG = os.getenv("DEBUG", "False").strip().lower() == "true"
         self.ATC_CUSTOM_NAMES = self._load_custom_names()
 
         self.ALERT_LOW_THRESHOLD = os.getenv("ALERT_LOW_THRESHOLD")
