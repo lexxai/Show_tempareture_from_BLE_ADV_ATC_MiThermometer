@@ -11,7 +11,7 @@ if %errorlevel% equ 0 (
 )
 
 
-%RUNNER% python ./build-version.py
+%RUNNER% python ./build_version.py
 
 mkdir "../pyinstall"
 ERASE "../pyinstall" /S/Q
