@@ -33,9 +33,12 @@ class Settings:
 
         self.ALERT_LOW_THRESHOLD = os.getenv("ALERT_LOW_THRESHOLD")
         self.ALERT_HIGH_THRESHOLD = os.getenv("ALERT_HIGH_THRESHOLD")
-        self.SENT_TRGESHOLD_TEMP = os.getenv("SENT_TRGESHOLD_TEMP", 1.0)
+        self.SENT_THRESHOLD_TEMP = os.getenv("SENT_THRESHOLD_TEMP", 1.0)
 
         self.DISCORD_WEB_HOOKS = os.getenv("DISCORD_WEB_HOOKS")
+
+        n = os.getenv("NOTIFICATION")
+        self.NOTIFICATION = n.split(",") if n else None
 
 
 # Example usage

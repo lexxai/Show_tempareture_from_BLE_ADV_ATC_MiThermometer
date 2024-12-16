@@ -5,7 +5,11 @@ NAME_F6ED7A="MAIN ROOM"
 
 ALERT_LOW_THRESHOLD=6.0
 ALERT_HIGH_THRESHOLD=36.0
-SENT_TRGESHOLD_TEMP=1.0
+SENT_THRESHOLD_TEMP=3.0
+
+# Coma separated list
+# NOTIFICATION=logger,discord
+NOTIFICATION=logger
 
 DISCORD_WEB_HOOKS=https://discord.com/api/webhooks/.....
 
