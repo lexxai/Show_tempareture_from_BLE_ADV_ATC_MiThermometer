@@ -10,7 +10,6 @@ readme = "README.md"
 python = "^3.11,<3.14"
 bleak = "^0.22.3"
 plyer = "^2.1.0"
-pyobjus = "^1.2.3"
 python-dotenv = "^1.0.1"
 httpx = {extras = ["http2"], version = "^0.28.1"}
 
