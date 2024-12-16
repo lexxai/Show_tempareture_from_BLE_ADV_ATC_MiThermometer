@@ -7,6 +7,5 @@ ALERT_LOW_THRESHOLD=6.0
 ALERT_HIGH_THRESHOLD=36.0
 SENT_TRGESHOLD_TEMP=1.0
 
-
 DISCORD_WEB_HOOKS=https://discord.com/api/webhooks/.....
 

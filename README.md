@@ -63,6 +63,20 @@ options:
   --debug               Enable debug output
 ```
 
+## Exaple of .env file with setings:
+```
+DEBUG=False
+
+NAME_5EDB77="OUTSIDE ROOM"
+NAME_F6ED7A="MAIN ROOM"
+
+ALERT_LOW_THRESHOLD=6.0
+ALERT_HIGH_THRESHOLD=36.0
+SENT_TRGESHOLD_TEMP=1.0
+
+DISCORD_WEB_HOOKS=https://discord.com/api/webhooks/.....
+```
+
 ## Telemetry data of custom PVVX format (https://github.com/pvvx/ATC_MiThermometer):
 
 Custom format (all data little-endian):
