@@ -23,6 +23,7 @@ class BLEScanner:
     TEXT_WIDTH = 30
     LINE_HEIGHT = 5
     SENT_TRGESHOLD_TEMP = 1
+    ATC_SERVICE = "0000181a-0000-1000-8000-00805f9b34fb"
 
     def __init__(
         self,
@@ -36,7 +37,6 @@ class BLEScanner:
         mode: str = "auto",  # all, passive, active
     ):
         self.output = output or ConsolePrint()
-        self.ATC_SERVICE = "0000181a-0000-1000-8000-00805f9b34fb"
         self.stop_event = asyncio.Event()
         self.atc_counters = {}
         self.atc_date = {}

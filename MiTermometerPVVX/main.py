@@ -135,20 +135,16 @@ async def main(
     use_text_pos: bool = False,
     sent_theshold_temp: float = None,
     mode: str = None,
-    notification: list[str] = None,
+    notification: RegisteredNotifications = None,
 ):
     await safely_start_logger()
     # log a message
     logging.info(f"Main is starting")
     output = ConsolePrint()
-    _notification = []
-    # Build list of selected notifications
-    _notification = registered_notifications.filer_notifications(notification)
-    print(f"Selected notification: {_notification}")
-    # _notification = [LoggerNotification(), DicordNotification()]
+    print(f"Selected notification: {notification.get_notification_names()}")
     scanner = BLEScanner(
         output=output,
-        notification=registered_notifications,
+        notification=notification,
         custom_names=custom_names,
         alert_low_threshold=alert_low_threshold,
         alert_high_threshold=alert_high_threshold,
@@ -252,6 +248,8 @@ if __name__ == "__main__":
 
     # if custom_names:
     logging.info(f"Custom Names: {custom_names}")
+    
+    registered_notifications.filer_notifications(args.notification)
 
     asyncio.run(
         main(
@@ -261,6 +259,6 @@ if __name__ == "__main__":
             use_text_pos=args.disable_text_pos,
             sent_theshold_temp=args.sent_theshold_temp,
             mode=args.mode,
-            notification=args.notification,
+            notification=registered_notifications,
         )
     )
