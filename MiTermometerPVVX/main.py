@@ -152,7 +152,7 @@ if __name__ == "__main__":
     # if custom_names:
     logger.debug(f"Custom Names: {custom_names}")
 
-    registered_notifications.filer(args.notification)
+    registered_notifications.filter(args.notification)
 
     asyncio.run(
         main(

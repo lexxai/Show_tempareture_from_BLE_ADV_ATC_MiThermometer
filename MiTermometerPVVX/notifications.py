@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 import logging
+from typing import Protocol, TypeVar
 
-from discord_api import send_message as discors_send_message
+from discord_api import send_message as discord_send_message
 
 # from plyer import notification
 
@@ -9,10 +10,11 @@ logger = logging.getLogger(f"BLEScanner.{__name__}")
 
 
 class NotificationAbstract(ABC):
-    is_async = False
 
     @abstractmethod
-    def send_alert(self, title: str = None, message: str = None) -> None:
+    async def send_alert(
+        self, title: str | None = None, message: str | None = None
+    ) -> None:
         """Sends an alert message."""
         ...
 
@@ -25,8 +27,13 @@ class NotificationAbstract(ABC):
 
 class LoggerNotification(NotificationAbstract):
     @staticmethod
-    def send_alert(title: str = None, message: str = None) -> None:
-        """Sends an alert message."""
+    async def send_alert(title: str | None = None, message: str | None = None) -> None:
+        """Logs a notification message with an optional title and message.
+
+        Args:
+            title (str | None): The title of the notification, if provided.
+            message (str | None): The message content of the notification, if provided.
+        """
         logger.info("*** START LOGGER NOTIFICATION ***")
         if title:
             logger.info(f"Title: {title}")
@@ -36,8 +43,15 @@ class LoggerNotification(NotificationAbstract):
 
 
 class PrintNotification(NotificationAbstract):
-    def send_alert(self, title: str = None, message: str = None) -> None:
-        """Sends an alert message."""
+    async def send_alert(
+        self, title: str | None = None, message: str | None = None
+    ) -> None:
+        """Prints a notification message with an optional title and message.
+
+        Args:
+            title (str | None): The title of the notification, if provided.
+            message (str | None): The message content of the notification, if provided.
+        """
         print("\n*** START PRINT NOTIFICATION ***")
         if title:
             print(f"Title: {title}")
@@ -47,10 +61,16 @@ class PrintNotification(NotificationAbstract):
 
 
 class DiscordNotification(NotificationAbstract):
-    is_async = True
 
-    async def send_alert(self, title: str = None, message: str = None) -> None:
-        """Sends an alert message."""
+    async def send_alert(
+        self, title: str | None = None, message: str | None = None
+    ) -> None:
+        """Sends a notification message to Discord with an optional title and message.
+
+        Args:
+            title (str | None): The title of the notification, if provided.
+            message (str | None): The message content of the notification, if provided.
+        """
         msg_list = []
         if title:
             msg_list.append(title)
@@ -58,13 +78,15 @@ class DiscordNotification(NotificationAbstract):
             msg_list.append(message)
 
         discord_message = "\n".join(msg_list)
-        await discors_send_message(discord_message)
+        await discord_send_message(discord_message)
 
 
 class SystemNotification(NotificationAbstract):
-    def send_alert(self, title: str = None, message: str = None) -> None:
+    async def send_alert(
+        self, title: str | None = None, message: str | None = None
+    ) -> None:
         """Sends an alert message."""
-        logger.info("*** START SYETEM NOTIFICATION ***")
+        logger.info("*** START SYSTEM NOTIFICATION ***")
         if title:
             logger.info(f"Title: {title}")
         if message:
@@ -78,39 +100,84 @@ class SystemNotification(NotificationAbstract):
         # )
 
 
-class ManagerAbstract(ABC):
-    def __init__(self, tasks: list[NotificationAbstract]):
+T = TypeVar("T", bound="TaskProtocol")
+
+
+class TaskProtocol(Protocol):
+    """Base class for notification tasks.
+
+    Defines the interface for a notification task, providing a common API for
+    different notification types.
+
+    """
+
+    def __str__(self) -> str: ...
+
+    def __repr__(self) -> str: ...
+
+    async def send_alert(
+        self, title: str | None = None, message: str | None = None
+    ) -> None: ...
+
+
+class ManagerAbstract:
+    """Abstract class to manage notification tasks.
+
+    Provides common methods for registration, un-registration, filtering and
+    retrieval of tasks.
+
+    """
+
+    def __init__(self, tasks: list[T]):
+
         self.tasks = tasks or []
 
-    def get(self) -> list[NotificationAbstract]:
+    def get(self) -> list[T]:
         return self.tasks
 
-    def register(self, notification: NotificationAbstract):
-        self.tasks.append(notification)
+    def register(self, task: T):
+        self.tasks.append(task)
 
-    def unregister(self, name: str):
+    def unregister(self, name: str | None = None, task: T = None):
+        if task:
+            self.tasks.remove(task)
+            return
+        if not name:
+            return
         for n in self.tasks:
             if str(n) == name:
                 self.tasks.remove(n)
                 break
 
-    def filer(self, name: list[str]) -> list[NotificationAbstract]:
+    def filter(self, name: list[str] | None, inplace: bool = True) -> list[T] | None:
         if name:
-            self.tasks = list(
-                filter(lambda n: str(n) in name, self.tasks)
-            )
+            tasks = list(filter(lambda n: str(n) in name, self.tasks))
+            if inplace:
+                self.tasks = tasks
+            else:
+                return tasks
         return self.tasks or None
 
     def get_names(self) -> list[str]:
         return [str(n) for n in self.tasks]
 
+
 class ManagerNotifications(ManagerAbstract):
 
-    async def send_alert(self, title: str = None, message: str = None) -> None:
+    async def send_alert(
+        self, title: str | None = None, message: str | None = None
+    ) -> None:
+        """
+        Sends an alert message to all registered notification tasks.
+
+        Args:
+            title (str | None): The title of the notification, if provided.
+            message (str | None): The message content of the notification, if provided.
+
+        Returns:
+            None
+        """
         if not self.tasks:
             return
         for n in self.tasks:
-            if n.is_async:
-                await n.send_alert(title, message)
-            else:
-                n.send_alert(title, message)
+            await n.send_alert(title, message)
