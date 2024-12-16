@@ -46,8 +46,8 @@ def parse_args(notification_names=None):
     parser.add_argument(
         "--mode",
         choices=["auto", "passive", "active"],
-        default="auto",
-        help="Select scan mode. Default is 'auto'.",
+        default=settings.BLE_SCANNER_MODE,
+        help=f"Select scan mode. Default is '{settings.BLE_SCANNER_MODE}'.",
     )
     notification_registered_choice = notification_names or []
     notification_registered_choice.append("none")

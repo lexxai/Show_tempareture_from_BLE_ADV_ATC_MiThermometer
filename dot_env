@@ -11,5 +11,8 @@ SENT_THRESHOLD_TEMP=3.0
 # NOTIFICATION=logger,discord
 NOTIFICATION=logger
 
+# auto, passive, active
+BLE_SCANNER_MODE=passive
+
 DISCORD_WEB_HOOKS=https://discord.com/api/webhooks/.....
 

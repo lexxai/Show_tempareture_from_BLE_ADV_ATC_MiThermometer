@@ -40,6 +40,10 @@ class Settings:
         n = os.getenv("NOTIFICATION")
         self.NOTIFICATION = n.split(",") if n else None
 
+        self.BLE_SCANNER_MODE = os.getenv("BLE_SCANNER_MODE", "auto").lower()
+        if self.BLE_SCANNER_MODE not in ["auto", "passive", "active"]:
+            self.BLE_SCANNER_MODE = "auto"
+
 
 # Example usage
 settings = Settings()
