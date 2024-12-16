@@ -16,6 +16,7 @@ httpx = {extras = ["http2"], version = "^0.28.1"}
 
 [tool.poetry.group.dev.dependencies]
 pyinstaller = "^6.11.1"
+pyinstaller-versionfile = "^3.0.0"
 
 [build-system]
 requires = ["poetry-core"]

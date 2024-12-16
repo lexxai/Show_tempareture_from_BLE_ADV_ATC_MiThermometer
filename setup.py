@@ -20,9 +20,7 @@ setup(
     ],
     packages=["MiTermometerPVVX"],
     include_package_data=True,
-    install_requires=[
-        "bleak", "html2text", "importlib_resources"
-    ],
+    install_requires=[i.strip() for i in open("requirements.txt").readlines()],
     setup_requires="setuptools",
     entry_points={"console_scripts": ["MiTermometerPVVX=MiTermometerPVVX.main:entry_point"]},
     scripts=['MiTermometerPVVX/main.py']
