@@ -1,4 +1,16 @@
-SET RUNNER=poetry run
+@echo off
+
+SETLOCAL ENABLEDELAYEDEXPANSION
+poetry --version >nul 2>&1
+if %errorlevel% equ 0 (
+    echo Poetry is installed.
+    SET RUNNER=poetry run
+) else (
+    echo Poetry is not installed.
+    SET RUNNER=""
+)
+
+
 %RUNNER% python ./build-version.py
 
 mkdir "../pyinstall"
