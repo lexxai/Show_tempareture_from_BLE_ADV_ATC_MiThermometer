@@ -4,6 +4,7 @@ import logging
 from logging.handlers import QueueHandler, QueueListener
 from queue import Queue
 
+from parse_args import parse_args
 from env_settings import settings
 
 from notifications import (
@@ -40,13 +41,13 @@ async def init_logger(debug: bool = False):
     que = Queue(-1)
     que_handler = QueueHandler(que)
     # Set up the console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.DEBUG if debug else logging.INFO)
-    console_handler.setFormatter(
+    queue_console_handler = logging.StreamHandler()
+    queue_console_handler.setLevel(logging.DEBUG if debug else logging.INFO)
+    queue_console_handler.setFormatter(
         logging.Formatter("* Async Queue %(asctime)s [%(levelname)s]: %(message)s")
     )
     # Set up the QueueListener
-    listener = QueueListener(que, console_handler, respect_handler_level=True)
+    listener = QueueListener(que, queue_console_handler, respect_handler_level=True)
     # Configure the root logger
     logger = logging.getLogger("BLEScanner")
     logger.setLevel(logging.DEBUG if debug else logging.INFO)
@@ -86,7 +87,7 @@ async def main(
     alert_low_threshold: float = None,
     alert_high_threshold: float = None,
     use_text_pos: bool = False,
-    sent_theshold_temp: float = None,
+    sent_threshold_temp: float = None,
     mode: str = None,
     notification: RegisteredNotifications = None,
     debug: bool = False,
@@ -104,7 +105,7 @@ async def main(
         alert_low_threshold=alert_low_threshold,
         alert_high_threshold=alert_high_threshold,
         use_text_pos=use_text_pos,
-        sent_theshold_temp=sent_theshold_temp,
+        sent_theshold_temp=sent_threshold_temp,
         mode=mode,
     )
     params = []
@@ -114,8 +115,8 @@ async def main(
         params.append(f"alert_low_threshold={alert_low_threshold}")
     if alert_high_threshold:
         params.append(f"alert_high_threshold={alert_high_threshold}")
-    if sent_theshold_temp:
-        params.append(f"sent_theshold_temp={sent_theshold_temp}")
+    if sent_threshold_temp:
+        params.append(f"sent_threshold_temp={sent_threshold_temp}")
 
     params.append(f"use_text_pos={use_text_pos}")
 
@@ -130,70 +131,9 @@ async def main(
 
 if __name__ == "__main__":
 
-    custom_names_default = (
-        " ".join(
-            [f"{key}='{value}'" for key, value in settings.ATC_CUSTOM_NAMES.items()]
-        )
-        or "not used"
-    )
-    # Parse arguments
-    parser = argparse.ArgumentParser(
-        description="Show temperature and humidity from BLE ADV 'ATC MiThermometer' and alarm on temperature."
-    )
-    parser.add_argument(
-        "--names",
-        nargs="+",
-        help=f'Define custom names in the format KEY=VALUE, where KEY can match with end of device name (e.g., 12345="OUTSIDE"). Default is {custom_names_default}.',
-    )
-    parser.add_argument(
-        "--alert-low-threshold",
-        type=lambda x: float(x) if x.lower() != "none" else None,
-        default=settings.ALERT_LOW_THRESHOLD,
-        help=f"Set the temperature alert threshold less than (e.g., 5.0 for 5°C). Use 'None' to disable. Default is {settings.ALERT_LOW_THRESHOLD}.",
-    )
 
-    parser.add_argument(
-        "--alert-high-threshold",
-        type=lambda x: float(x) if x.lower() != "none" else None,
-        default=settings.ALERT_HIGH_THRESHOLD,
-        help=f"Set the temperature alert threshold higher than (e.g., 40.0 for 40°C). Use 'None' to disable.  Default is {settings.ALERT_HIGH_THRESHOLD}.",
-    )
-    parser.add_argument(
-        "--sent_theshold_temp",
-        type=float,
-        default=settings.SENT_TRGESHOLD_TEMP,
-        help=f"Set the delta temperature alert threshold for send next notification. Default is {settings.SENT_TRGESHOLD_TEMP}.",
-    )
-    parser.add_argument(
-        "--disable_text_pos",
-        help=f"Used when need to disable use text position and use plain print. Default is enabled.",
-        action="store_false",
-    )
-    parser.add_argument(
-        "--mode",
-        choices=["auto", "passive", "active"],
-        default="auto",
-        help="Select scan mode. Default is 'auto'.",
-    )
-    notification_registered_cooise = registered_notifications.get_notification_names()
-    notification_registered_cooise.append("none")
-    notification_registered_default = notification_registered_cooise[0:1]
-    parser.add_argument(
-        "--notification",
-        nargs="+",
-        choices=notification_registered_cooise,
-        default=notification_registered_default,
-        help=(
-            f"Select notification mode individually or multiple, separated by space. Default is '{notification_registered_default[0]}'. "
-        ),
-    )
-    parser.add_argument(
-        "--debug",
-        help="Enable debug output",
-        action="store_true",
-    )
 
-    args = parser.parse_args()
+    args = parse_args(registered_notifications.get_notification_names())
 
     if args.debug:
         logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
@@ -220,7 +160,7 @@ if __name__ == "__main__":
             alert_low_threshold=args.alert_low_threshold,
             alert_high_threshold=args.alert_high_threshold,
             use_text_pos=args.disable_text_pos,
-            sent_theshold_temp=args.sent_theshold_temp,
+            sent_threshold_temp=args.sent_threshold_temp,
             mode=args.mode,
             notification=registered_notifications,
             debug=args.debug or settings.DEBUG,
