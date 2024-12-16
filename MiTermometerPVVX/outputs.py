@@ -1,3 +1,4 @@
+import asyncio
 from abc import ABC, abstractmethod
 import logging
 
@@ -6,26 +7,66 @@ logger = logging.getLogger(f"BLEScanner.{__name__}")
 
 class PrintAbstract(ABC):
     @abstractmethod
-    def print_value(self, text: str, pos: dict = None) -> None: ...
+    async def print_value(self, text: str, pos: dict = None) -> None: ...
 
     @abstractmethod
-    def clear(self) -> None: ...
+    async def clear(self) -> None: ...
 
-    def clear_lines(self, lines: int = 1): ...
+    async def clear_lines(self, lines: int = 1): ...
 
 
 class ConsolePrint(PrintAbstract):
-    def print_value(self, text: str, pos: dict = None) -> None:
+    def __init__(self):
+        self.print_method = print
+
+    def format_text(self, text: str, pos: dict = None):
+        """Format the text with position if provided."""
         if pos is not None:
-            print_text = f'\033[{str(pos["y"])};{str(pos["x"])}H{text}'
-        else:
-            print_text = text
+            return f'\033[{str(pos["y"])};{str(pos["x"])}H{text}'
+        return text
 
-        print(print_text)
+    async def print_value(self, text: str, pos: dict = None) -> None:
+        self.print_method(self.format_text(text, pos))
 
-    def clear(self):
-        print("\033c\033[3J")
+    async def clear(self):
+        self.print_method("\033c\033[3J")
 
-    def clear_lines(self, lines: int = 1):
+    async def clear_lines(self, lines: int = 1):
         for _ in range(lines):
-            print("\033[K")
+            self.print_method("\033[K")
+
+
+class ConsolePrintAsync(ConsolePrint):
+    def __init__(self):
+        super().__init__()
+        self.print_queue = asyncio.Queue()
+        self.worker_task = asyncio.create_task(self.print_worker())
+        self.print_method = self.async_print
+
+    async def print_worker(self):
+        """Worker that processes messages from the print queue."""
+        while True:
+            message = await self.print_queue.get()
+            if message is None:  # Exit signal
+                break
+            print(message)  # Perform the actual print operation
+            self.print_queue.task_done()
+
+    async def async_print(self, text: str):
+        """Put messages into the print queue."""
+        await self.print_queue.put(text)
+
+    async def print_value(self, text: str, pos: dict = None) -> None:
+        await self.print_method(self.format_text(text, pos))
+
+    async def clear(self):
+        await self.print_method("\033c\033[3J")
+
+    async def clear_lines(self, lines: int = 1):
+        for _ in range(lines):
+            await self.print_method("\033[K")
+
+    async def close(self):
+        """Gracefully shutdown the worker task and queue."""
+        await self.print_queue.put(None)  # Send exit signal to worker
+        await self.worker_task

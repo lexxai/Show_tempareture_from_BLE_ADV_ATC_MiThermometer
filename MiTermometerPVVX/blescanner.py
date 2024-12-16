@@ -10,6 +10,28 @@ from outputs import ConsolePrint, PrintAbstract
 
 logger = logging.getLogger(f"BLEScanner.{__name__}")
 
+
+def output_cols(func):
+    @wraps(func)
+    async def wrapper(self, *args, **kwargs):
+        address = args[0] if len(args) > 0 else kwargs.get("address")
+        if address is not None:
+            device = self.atc_devices.get(address, {})
+            device_id = device.get("id")
+            if device_id is not None:
+                pos_x = self.TEXT_WIDTH * (device_id % self.COLS)
+                pos_y = self.LINE_HEIGHT * (device_id // self.COLS) + 1
+                self.set_text_pos(pos_x, pos_y)
+
+        await func(self, *args, **kwargs)
+
+        if address is not None:
+            self.shift_text_pos(dy=2)
+            self.set_text_pos(x=0)
+
+    return wrapper
+
+
 class BLEScanner:
     # Set the temperature thresholds (in °C) for alerts
     COLS = 4
@@ -61,17 +83,17 @@ class BLEScanner:
     def get_text_pos_dict(self) -> dict:
         return self.print_pos.copy()
 
-    def print_text(self, text: str) -> None:
+    async def print_text(self, text: str) -> None:
         """Print text at the current cursor position."""
         pos = self.get_text_pos_dict() if self.use_text_pos else None
-        self.output.print_value(text, pos=pos)
+        await self.output.print_value(text, pos=pos)
         if self.use_text_pos:
             self.shift_text_pos(dy=1)
 
-    def print_clear(self) -> None:
+    async def print_clear(self) -> None:
         """Clear the terminal screen."""
         if self.use_text_pos:
-            self.output.clear()
+            await self.output.clear()
 
     def custom_name(self, name: str | None) -> str | None:
         """Replace default device name with a custom one if available."""
@@ -137,7 +159,7 @@ class BLEScanner:
         battery = int.from_bytes(adv_atc[12:13], byteorder="little", signed=False)
         rssi = advertising_data.rssi
 
-        self.display_device_info(
+        await self.display_device_info(
             device.address,
             temp,
             humidity,
@@ -150,34 +172,12 @@ class BLEScanner:
         )
         await self.monitor_thresholds(self.get_device_name(device.address), temp)
 
-    def clear_lines(self, lines: int = 1):
+    async def clear_lines(self, lines: int = 1):
         if self.use_text_pos:
-            self.output.clear_lines(lines)
-
-    def output_cols(func):
-        @wraps(func)
-        def wrapper(self, *args, **kwargs):
-            address = args[0] if len(args) > 0 else kwargs.get("address")
-            if address is not None:
-                id = self.atc_devices.get(address, {}).get("id")  # noqa: F841 address
-                if id is not None:
-                    # if id == 0:
-                    #     self.print_clear()
-                    pos_x = self.TEXT_WIDTH * (id % self.COLS)
-                    pos_y = self.LINE_HEIGHT * (id // self.COLS) + 1
-                    self.set_text_pos(pos_x, pos_y)
-                    # logger.debug(f"Device ID: {id} {pos_x=} {pos_y=}")
-
-            func(self, *args, **kwargs)
-
-            if address is not None:
-                self.shift_text_pos(dy=2)
-                self.set_text_pos(x=0)
-
-        return wrapper
+            await self.output.clear_lines(lines)
 
     @output_cols
-    def display_device_info(
+    async def display_device_info(
         self,
         address,
         temp,
@@ -192,16 +192,16 @@ class BLEScanner:
         """Display formatted device information."""
         name = self.get_device_name(address)
 
-        self.print_text(f"Device: {name}")
-        self.print_text("-" * 21)
-        self.print_text(f"Temp: {temp:.2f}°C")
-        self.print_text(f"Humidity: {humidity:.2f}%")
-        self.print_text(f"Battery: {battery}% ({battery_v}V)")
-        self.print_text(f"RSSI: {rssi} dBm")
-        self.print_text(f"Count: {count}")
-        self.print_text(f"Last Seen: {date_now.strftime('%H:%M:%S')}")
+        await self.print_text(f"Device: {name}")
+        await self.print_text("-" * 21)
+        await self.print_text(f"Temp: {temp:.2f}°C")
+        await self.print_text(f"Humidity: {humidity:.2f}%")
+        await self.print_text(f"Battery: {battery}% ({battery_v}V)")
+        await self.print_text(f"RSSI: {rssi} dBm")
+        await self.print_text(f"Count: {count}")
+        await self.print_text(f"Last Seen: {date_now.strftime('%H:%M:%S')}")
         if date_diff:
-            self.print_text(f"Duration: {date_diff}")
+            await self.print_text(f"Duration: {date_diff}")
 
     def generate_title_message(
         self,
@@ -234,8 +234,8 @@ class BLEScanner:
             )
         if title or message:
             if self.is_need_send_alert(name, temp):
-                self.clear_lines(10)
-                self.print_text("")
+                await self.clear_lines(10)
+                await self.print_text("")
                 await self.send_alert(title, message)
 
     def is_need_send_alert(self, name: str, temp: float) -> bool:

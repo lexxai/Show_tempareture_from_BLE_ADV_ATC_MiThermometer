@@ -4,6 +4,7 @@ import logging
 from logging.handlers import QueueHandler, QueueListener
 from queue import Queue
 
+from outputs import ConsolePrintAsync
 from parse_args import parse_args
 from env_settings import settings
 
@@ -96,7 +97,7 @@ async def main(
     logger = logging.getLogger("BLEScanner")
     # log a message
     logger.debug(f"Main is starting")
-    output = ConsolePrint()
+    output = ConsolePrintAsync()
     logger.debug(f"Selected notification: {notification.get_names()}")
     scanner = BLEScanner(
         output=output,
@@ -130,8 +131,6 @@ async def main(
 
 
 if __name__ == "__main__":
-
-
 
     args = parse_args(registered_notifications.get_names())
 
