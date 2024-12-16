@@ -4,7 +4,7 @@ from functools import wraps
 import logging
 from bleak import BleakScanner, BleakError
 
-from notifications import NotificationAbstract, RegisteredNotifications
+from notifications import ManagerNotifications
 
 from outputs import ConsolePrint, PrintAbstract
 
@@ -21,7 +21,7 @@ class BLEScanner:
     def __init__(
         self,
         output: PrintAbstract = None,
-        notification: RegisteredNotifications = None,
+        notification: ManagerNotifications = None,
         alert_low_threshold: float = None,
         custom_names: dict = None,
         alert_high_threshold: float = None,

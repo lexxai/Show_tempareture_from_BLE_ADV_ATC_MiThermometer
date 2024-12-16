@@ -10,7 +10,7 @@ from env_settings import settings
 from notifications import (
     DiscordNotification,
     LoggerNotification,
-    RegisteredNotifications,
+    ManagerNotifications,
 )
 
 from outputs import ConsolePrint
@@ -18,12 +18,12 @@ from outputs import ConsolePrint
 from blescanner import BLEScanner
 
 try:
-    registered_notifications = RegisteredNotifications(
+    registered_notifications = ManagerNotifications(
         [LoggerNotification(), DiscordNotification()]
     )
 except NameError as e:
     print(f"Error registering notifications: {e} {type(e)}")
-    registered_notifications = RegisteredNotifications()
+    registered_notifications = ManagerNotifications()
 
 logger = logging.getLogger("BLEScanner.{__name__}")
 logger.setLevel(logging.DEBUG if settings.DEBUG else logging.INFO)
@@ -89,7 +89,7 @@ async def main(
     use_text_pos: bool = False,
     sent_threshold_temp: float = None,
     mode: str = None,
-    notification: RegisteredNotifications = None,
+    notification: ManagerNotifications = None,
     debug: bool = False,
 ):
     await safely_start_logger(debug)
@@ -97,7 +97,7 @@ async def main(
     # log a message
     logger.debug(f"Main is starting")
     output = ConsolePrint()
-    logger.debug(f"Selected notification: {notification.get_notification_names()}")
+    logger.debug(f"Selected notification: {notification.get_names()}")
     scanner = BLEScanner(
         output=output,
         notification=notification,
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
 
 
-    args = parse_args(registered_notifications.get_notification_names())
+    args = parse_args(registered_notifications.get_names())
 
     if args.debug:
         logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
@@ -152,7 +152,7 @@ if __name__ == "__main__":
     # if custom_names:
     logger.debug(f"Custom Names: {custom_names}")
 
-    registered_notifications.filer_notifications(args.notification)
+    registered_notifications.filer(args.notification)
 
     asyncio.run(
         main(

@@ -19,6 +19,9 @@ class NotificationAbstract(ABC):
     def __str__(self):
         return f"{self.__class__.__name__.split('Notification')[0].lower() or self.__class__.__name__}"
 
+    def __repr__(self):
+        return self.__str__()
+
 
 class LoggerNotification(NotificationAbstract):
     @staticmethod
@@ -67,7 +70,7 @@ class SystemNotification(NotificationAbstract):
         if message:
             logger.info(f"Message: {message}")
         logger.info("*** END SYSTEM NOTIFICATION ***")
-        # Using plyer for cross-platform notifications
+        # Using plyer for cross-platform tasks
         # notification.notify(
         #     title=alert_title,
         #     message=alert_message,
@@ -75,36 +78,38 @@ class SystemNotification(NotificationAbstract):
         # )
 
 
-class RegisteredNotifications:
-    def __init__(self, notifications: list[NotificationAbstract]):
-        self.notifications = notifications or []
+class ManagerAbstract(ABC):
+    def __init__(self, tasks: list[NotificationAbstract]):
+        self.tasks = tasks or []
 
-    def get_notifications(self) -> list[NotificationAbstract]:
-        return self.notifications
+    def get(self) -> list[NotificationAbstract]:
+        return self.tasks
 
-    def add_notification(self, notification: NotificationAbstract):
-        self.notifications.append(notification)
+    def register(self, notification: NotificationAbstract):
+        self.tasks.append(notification)
 
-    def delete_notification(self, name: str):
-        for n in self.notifications:
+    def unregister(self, name: str):
+        for n in self.tasks:
             if str(n) == name:
-                self.notifications.remove(n)
+                self.tasks.remove(n)
                 break
 
-    def filer_notifications(self, name: list[str]) -> list[NotificationAbstract]:
+    def filer(self, name: list[str]) -> list[NotificationAbstract]:
         if name:
-            self.notifications = list(
-                filter(lambda n: str(n) in name, self.notifications)
+            self.tasks = list(
+                filter(lambda n: str(n) in name, self.tasks)
             )
-        return self.notifications or None
+        return self.tasks or None
 
-    def get_notification_names(self) -> list[str]:
-        return [str(n) for n in self.notifications]
+    def get_names(self) -> list[str]:
+        return [str(n) for n in self.tasks]
+
+class ManagerNotifications(ManagerAbstract):
 
     async def send_alert(self, title: str = None, message: str = None) -> None:
-        if not self.notifications:
+        if not self.tasks:
             return
-        for n in self.notifications:
+        for n in self.tasks:
             if n.is_async:
                 await n.send_alert(title, message)
             else:
