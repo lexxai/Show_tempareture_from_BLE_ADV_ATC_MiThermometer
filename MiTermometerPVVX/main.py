@@ -9,6 +9,7 @@ from env_settings import settings
 from notifications import (
     DiscordNotification,
     LoggerNotification,
+    RegisteredNotifications,
 )
 
 from outputs import ConsolePrint
@@ -16,10 +17,12 @@ from outputs import ConsolePrint
 from blescanner import BLEScanner
 
 try:
-    REGISTERED_NOTIFICATIONS = [LoggerNotification(), DiscordNotification()]
+    registered_notifications = RegisteredNotifications(
+        [LoggerNotification(), DiscordNotification()]
+    )
 except NameError as e:
     print(f"Error registering notifications: {e} {type(e)}")
-    REGISTERED_NOTIFICATIONS = []
+    registered_notifications = RegisteredNotifications()
 
 # print(f"Registered notifications: {[str(n) for n in REGISTERED_NOTIFICATIONS]}")
 
@@ -54,27 +57,27 @@ except NameError as e:
 
 # helper coroutine to setup and manage the logger
 async def init_logger():
-    # get the root logger
-    log = logging.getLogger("BLEScanner")
+    # https://docs.python.org/3/howto/logging-cookbook.html#blocking-handlers
     # create the shared queue
-    que = Queue()
-    # add a handler that uses the shared queue
+    que = Queue(-1)
     que_handler = QueueHandler(que)
-    # # Create a formatter and attach it to the que_handler
+    handler = logging.StreamHandler()
+    listener = QueueListener(que, handler)
+    # get the root logger
+    log = logging.getLogger("asyncio.BLEScanner")
+    log.addHandler(que_handler)
     formatter = logging.Formatter(
         "* Async Queue %(asctime)s [%(levelname)s]: %(message)s"
     )
-    que_handler.setFormatter(formatter)
-    log.addHandler(que_handler)
+    handler.setFormatter(formatter)
     # log all messages, debug and up
-    log.setLevel(logging.DEBUG)
-    console_handler = logging.StreamHandler()
+    # log.setLevel(logging.DEBUG)
+    # console_handler = logging.StreamHandler()
     # console_handler.setLevel(logging.ERROR)
     # # Create a formatter and attach it to the console handler
     # formatter = logging.Formatter("%(asctime)s [%(levelname)s]: %(message)s")
     # console_handler.setFormatter(formatter)
     # create a listener for messages on the queue
-    listener = QueueListener(que, logging.StreamHandler())
     try:
         # start the listener
         listener.start()
@@ -140,17 +143,12 @@ async def main(
     output = ConsolePrint()
     _notification = []
     # Build list of selected notifications
-    registered_names = [str(n) for n in REGISTERED_NOTIFICATIONS]
-    for n in notification:
-        if n in registered_names:
-            _notification.append(n)
-    if len(_notification) == 0:
-        _notification = None
+    _notification = registered_notifications.filer_notifications(notification)
     print(f"Selected notification: {_notification}")
     # _notification = [LoggerNotification(), DicordNotification()]
     scanner = BLEScanner(
         output=output,
-        notification=_notification,
+        notification=registered_notifications,
         custom_names=custom_names,
         alert_low_threshold=alert_low_threshold,
         alert_high_threshold=alert_high_threshold,
@@ -226,7 +224,7 @@ if __name__ == "__main__":
         default="auto",
         help="Select scan mode. Default is 'auto'.",
     )
-    notification_registered_cooise = [str(n) for n in REGISTERED_NOTIFICATIONS]
+    notification_registered_cooise = registered_notifications.get_notification_names()
     notification_registered_cooise.append("none")
     notification_registered_default = notification_registered_cooise[0:1]
     parser.add_argument(
@@ -235,7 +233,7 @@ if __name__ == "__main__":
         choices=notification_registered_cooise,
         default=notification_registered_default,
         help=(
-            f"Select notification mode as individualy as and multiple. Default is '{notification_registered_default[0]}'. "
+            f"Select notification mode individually or multiple, separated by space. Default is '{notification_registered_default[0]}'. "
         ),
     )
 

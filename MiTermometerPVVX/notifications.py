@@ -5,7 +5,7 @@ from discord_api import send_message as discors_send_message
 
 # from plyer import notification
 
-logger = logging.getLogger(f"BLEScanner.{__name__}")
+logger = logging.getLogger(f"asyncio.BLEScanner.{__name__}")
 # logger = None
 
 
@@ -79,3 +79,39 @@ class SystemNotification(NotificationAbstract):
         #     message=alert_message,
         #     timeout=10,  # Notification will disappear after 10 seconds
         # )
+
+
+class RegisteredNotifications:
+    def __init__(self, notifications: list[NotificationAbstract]):
+        self.notifications = notifications or []
+
+    def get_notifications(self) -> list[NotificationAbstract]:
+        return self.notifications
+
+    def add_notification(self, notification: NotificationAbstract):
+        self.notifications.append(notification)
+
+    def delete_notification(self, name: str):
+        for n in self.notifications:
+            if str(n) == name:
+                self.notifications.remove(n)
+                break
+
+    def filer_notifications(self, name: list[str]) -> list[NotificationAbstract]:
+        if name:
+            self.notifications = list(
+                filter(lambda n: str(n) in name, self.notifications)
+            )
+        return self.notifications or None
+
+    def get_notification_names(self) -> list[str]:
+        return [str(n) for n in self.notifications]
+
+    async def send_alert(self, title: str = None, message: str = None) -> None:
+        if not self.notifications:
+            return
+        for n in self.notifications:
+            if n.is_async:
+                await n.send_alert(title, message)
+            else:
+                n.send_alert(title, message)

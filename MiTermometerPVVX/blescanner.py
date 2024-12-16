@@ -4,12 +4,13 @@ from functools import wraps
 import logging
 from bleak import BleakScanner, BleakError
 
-from notifications import NotificationAbstract
+from notifications import NotificationAbstract, RegisteredNotifications
 
 from outputs import ConsolePrint, PrintAbstract
 
-logger = logging.getLogger(f"BLEScanner.{__name__}")
+logger = logging.getLogger(f"asyncio.BLEScanner.{__name__}")
 # logger = None
+
 
 def init_logger():
     global logger
@@ -26,7 +27,7 @@ class BLEScanner:
     def __init__(
         self,
         output: PrintAbstract = None,
-        notification: list[NotificationAbstract] | NotificationAbstract = None,
+        notification: RegisteredNotifications = None,
         alert_low_threshold: float = None,
         custom_names: dict = None,
         alert_high_threshold: float = None,
@@ -274,19 +275,10 @@ class BLEScanner:
         message: str = None,
     ) -> None:
         """Sends an alert message."""
-        if not self.notification or len(self.notification) == 0:
-            # logger.warning("Notification is not available.")
+        if not self.notification:
             return
         try:
-            if not isinstance(self.notification, list):
-                self.notification = [self.notification]
-
-            for n in self.notification:
-                if n.is_async:
-                    await n.send_alert(title, message)
-                else:
-                    n.send_alert(title, message)
-
+            await self.notification.send_alert(title, message)
         except Exception as e:
             logger.error(f"Notification failed: {e}")
 
