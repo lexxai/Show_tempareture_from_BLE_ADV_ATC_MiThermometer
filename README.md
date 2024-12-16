@@ -37,7 +37,7 @@ exe file placed on pyinstall\dist\MiTermometerPVVX.exe
 ```
 usage: main.py [-h] [--names NAMES [NAMES ...]] [--alert-low-threshold ALERT_LOW_THRESHOLD]
                [--alert-high-threshold ALERT_HIGH_THRESHOLD] [--sent_theshold_temp SENT_THESHOLD_TEMP] [--disable_text_pos]
-               [--mode {auto,passive,active}] [--notification {logger,discord,none} [{logger,discord,none} ...]]
+               [--mode {auto,passive,active}] [--notification {logger,discord,none} [{logger,discord,none} ...]] [--debug]
 
 Show temperature and humidity from BLE ADV 'ATC MiThermometer' and alarm on temperature.
 
@@ -59,6 +59,7 @@ options:
                         Select scan mode. Default is 'auto'.
   --notification {logger,discord,none} [{logger,discord,none} ...]
                         Select notification mode individually or multiple, separated by space. Default is 'logger'.
+  --debug               Enable debug output
 ```
 
 ## Telemetry data of custom PVVX format (https://github.com/pvvx/ATC_MiThermometer):
