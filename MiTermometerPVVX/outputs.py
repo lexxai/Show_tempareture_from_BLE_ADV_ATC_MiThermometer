@@ -2,17 +2,9 @@ import asyncio
 from abc import ABC, abstractmethod
 import logging
 
+from utils import AsyncWithDummy
+
 logger = logging.getLogger(f"BLEScanner.{__name__}")
-
-
-class AsyncWithDummy(asyncio.Lock):
-    async def __aenter__(self):
-        """Called when entering the async context."""
-        return self
-
-    async def __aexit__(self, exc_type, exc_value, traceback):
-        """Called when exiting the async context."""
-        return True  # Suppress exceptions if needed (returning True does this)
 
 
 class PrintAbstract(ABC):
@@ -31,6 +23,10 @@ class PrintAbstract(ABC):
 
 
 class ConsolePrint(PrintAbstract):
+    CLEAR_SCREEN = "\033c\033[3J"
+    CLEAR_LINE = "\033[K"
+    POSITION = "\033[{y};{x}H{text}"
+
     def __init__(self, lock: asyncio.Lock = None):
         super().__init__()
         self.print_method = print
@@ -38,18 +34,18 @@ class ConsolePrint(PrintAbstract):
     def format_text(self, text: str, pos: dict = None):
         """Format the text with position if provided."""
         if pos is not None:
-            return f'\033[{str(pos["y"])};{str(pos["x"])}H{text}'
+            return self.POSITION.format(y=pos["y"], x=pos["x"], text=text)
         return text
 
     async def print_value(self, text: str, pos: dict = None) -> None:
         self.print_method(self.format_text(text, pos))
 
     async def clear(self):
-        self.print_method("\033c\033[3J")
+        self.print_method(self.CLEAR_SCREEN)
 
     async def clear_lines(self, lines: int = 1):
         for _ in range(lines):
-            self.print_method("\033[K")
+            self.print_method(self.CLEAR_LINE)
 
 
 class ConsolePrintAsync(ConsolePrint):
@@ -81,11 +77,11 @@ class ConsolePrintAsync(ConsolePrint):
         await self.print_method(self.format_text(text, pos))
 
     async def clear(self):
-        await self.print_method("\033c\033[3J")
+        await self.print_method(self.CLEAR_SCREEN)
 
     async def clear_lines(self, lines: int = 1):
         for _ in range(lines):
-            await self.print_method("\033[K")
+            await self.print_method(self.CLEAR_LINE)
 
     async def close(self):
         """Gracefully shutdown the worker task and queue."""
