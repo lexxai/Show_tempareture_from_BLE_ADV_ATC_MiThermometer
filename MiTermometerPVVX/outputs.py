@@ -5,7 +5,22 @@ import logging
 logger = logging.getLogger(f"BLEScanner.{__name__}")
 
 
+class AsyncWithDummy(asyncio.Lock):
+    async def __aenter__(self):
+        """Called when entering the async context."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        """Called when exiting the async context."""
+        return True  # Suppress exceptions if needed (returning True does this)
+
+
 class PrintAbstract(ABC):
+
+    @property
+    def lock(self) -> AsyncWithDummy:
+        return AsyncWithDummy()
+
     @abstractmethod
     async def print_value(self, text: str, pos: dict = None) -> None: ...
 
@@ -16,7 +31,8 @@ class PrintAbstract(ABC):
 
 
 class ConsolePrint(PrintAbstract):
-    def __init__(self):
+    def __init__(self, lock: asyncio.Lock = None):
+        super().__init__()
         self.print_method = print
 
     def format_text(self, text: str, pos: dict = None):
@@ -37,11 +53,16 @@ class ConsolePrint(PrintAbstract):
 
 
 class ConsolePrintAsync(ConsolePrint):
-    def __init__(self):
+    def __init__(self, lock: asyncio.Lock = None):
         super().__init__()
         self.print_queue = asyncio.Queue()
         self.worker_task = asyncio.create_task(self.print_worker())
         self.print_method = self.async_print
+        self._lock = lock
+
+    @property
+    def lock(self) -> asyncio.Lock | AsyncWithDummy:
+        return self._lock or AsyncWithDummy()
 
     async def print_worker(self):
         """Worker that processes messages from the print queue."""

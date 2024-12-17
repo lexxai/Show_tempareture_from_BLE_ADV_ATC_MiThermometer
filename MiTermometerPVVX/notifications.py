@@ -1,3 +1,4 @@
+import asyncio
 from abc import ABC, abstractmethod
 import logging
 from typing import Protocol, TypeVar
@@ -9,7 +10,23 @@ from discord_api import send_message as discord_send_message
 logger = logging.getLogger(f"BLEScanner.{__name__}")
 
 
+class AsyncWithDummy(asyncio.Lock):
+    async def __aenter__(self):
+        """Called when entering the async context."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        """Called when exiting the async context."""
+        return True  # Suppress exceptions if needed (returning True does this)
+
+
 class NotificationAbstract(ABC):
+    def __init__(self) -> None:
+        super().__init__()
+
+    @property
+    def lock(self) -> AsyncWithDummy:
+        return AsyncWithDummy()
 
     @abstractmethod
     async def send_alert(
@@ -26,20 +43,34 @@ class NotificationAbstract(ABC):
 
 
 class LoggerNotification(NotificationAbstract):
-    @staticmethod
-    async def send_alert(title: str | None = None, message: str | None = None) -> None:
+    def __init__(self, lock: asyncio.Lock = None) -> None:
+        super().__init__()
+        self._lock = lock
+
+    @property
+    def lock(self) -> asyncio.Lock | AsyncWithDummy:
+        return self._lock or AsyncWithDummy()
+
+    # @staticmethod
+    async def send_alert(
+        self, title: str | None = None, message: str | None = None
+    ) -> None:
         """Logs a notification message with an optional title and message.
 
         Args:
             title (str | None): The title of the notification, if provided.
             message (str | None): The message content of the notification, if provided.
         """
-        logger.info("*** START LOGGER NOTIFICATION ***")
-        if title:
-            logger.info(f"Title: {title}")
-        if message:
-            logger.info(f"Message: {message}")
-        logger.info("*** END LOGGER NOTIFICATION ***")
+        if not self.lock:
+            logger.error("LoggerNotification has no lock")
+            return
+        async with self.lock:
+            logger.info("*** START LOGGER NOTIFICATION ***")
+            if title:
+                logger.info(f"Title: {title}")
+            if message:
+                logger.info(f"Message: {message}")
+            logger.info("*** END LOGGER NOTIFICATION ***")
 
 
 class PrintNotification(NotificationAbstract):
@@ -118,6 +149,9 @@ class TaskProtocol(Protocol):
     async def send_alert(
         self, title: str | None = None, message: str | None = None
     ) -> None: ...
+
+    @property
+    def lock(self) -> None | asyncio.Lock: ...
 
 
 class ManagerAbstract:

@@ -113,16 +113,16 @@ class BLEScanner:
         stored_device = self.atc_devices.get(device.address)
 
         if not stored_device:
-            self.register_new_device(device, name)
+            await self.register_new_device(device, name)
         elif name != stored_device["name"]:
             stored_device["name"] = name
 
         await self.update_device_data(device, advertising_data, adv_atc)
 
-    def register_new_device(self, device, name):
+    async def register_new_device(self, device, name):
         """Register a new BLE device."""
         if not self.atc_devices:
-            self.print_clear()
+            await self.print_clear()
         self.atc_devices[device.address] = {"name": name, "id": len(self.atc_devices)}
 
     def generate_device_name(self, device):
@@ -191,17 +191,17 @@ class BLEScanner:
     ):
         """Display formatted device information."""
         name = self.get_device_name(address)
-
-        await self.print_text(f"Device: {name}")
-        await self.print_text("-" * 21)
-        await self.print_text(f"Temp: {temp:.2f}°C")
-        await self.print_text(f"Humidity: {humidity:.2f}%")
-        await self.print_text(f"Battery: {battery}% ({battery_v}V)")
-        await self.print_text(f"RSSI: {rssi} dBm")
-        await self.print_text(f"Count: {count}")
-        await self.print_text(f"Last Seen: {date_now.strftime('%H:%M:%S')}")
-        if date_diff:
-            await self.print_text(f"Duration: {date_diff}")
+        async with self.output.lock:
+            await self.print_text(f"Device: {name}")
+            await self.print_text("-" * 21)
+            await self.print_text(f"Temp: {temp:.2f}°C")
+            await self.print_text(f"Humidity: {humidity:.2f}%")
+            await self.print_text(f"Battery: {battery}% ({battery_v}V)")
+            await self.print_text(f"RSSI: {rssi} dBm")
+            await self.print_text(f"Count: {count}")
+            await self.print_text(f"Last Seen: {date_now.strftime('%H:%M:%S')}")
+            if date_diff:
+                await self.print_text(f"Duration: {date_diff}")
 
     def generate_title_message(
         self,
@@ -234,8 +234,10 @@ class BLEScanner:
             )
         if title or message:
             if self.is_need_send_alert(name, temp):
-                await self.clear_lines(10)
-                await self.print_text("")
+                async with self.output.lock:
+                    await self.clear_lines(10)
+                    await self.print_text("")
+                await asyncio.sleep(0)
                 await self.send_alert(title, message)
 
     def is_need_send_alert(self, name: str, temp: float) -> bool:
