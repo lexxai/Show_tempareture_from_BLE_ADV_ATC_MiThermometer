@@ -61,6 +61,14 @@ To build a Windows `.exe` version of the application, follow these steps:
 
 This `.exe` file can be run on a Windows system without needing a Python environment installed. It includes all dependencies bundled into the executable.
 
+## Notes
+
+- **Passive Mode**: This application works by grabbing advertising messages from Bluetooth Low Energy (BLE) devices in passive mode. In passive mode, no bidirectional communication is required with the devices to obtain telemetry data. This means that the application can retrieve data without draining the power of the BLE devices.
+
+- **Active Mode**: In active mode, communication with the BLE devices is required to fetch telemetry data, which can drain the power elements of the devices. 
+
+- **Platform-Specific Behavior**: The application has been tested to work on both macOS and Windows. However, due to architectural limitations on macOS, it **cannot** run the scanner in passive mode. Only active mode will work on macOS, so **be cautious** when running the application on this platform.
+
 
 ## Result of MiTermometerPVVX:
 
