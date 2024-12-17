@@ -18,9 +18,10 @@ from outputs import ConsolePrint
 
 from blescanner import BLEScanner
 
+print_lock = asyncio.Lock()
 try:
     registered_notifications = ManagerNotifications(
-        [LoggerNotification(), DiscordNotification()]
+        [LoggerNotification(print_lock), DiscordNotification()]
     )
 except NameError as e:
     print(f"Error registering notifications: {e} {type(e)}")
@@ -97,7 +98,7 @@ async def main(
     logger = logging.getLogger("BLEScanner")
     # log a message
     logger.debug(f"Main is starting")
-    output = ConsolePrintAsync()
+    output = ConsolePrintAsync(print_lock)
     logger.debug(f"Selected notification: {notification.get_names()}")
     scanner = BLEScanner(
         output=output,
@@ -130,7 +131,7 @@ async def main(
         scanner.stop_event.set()
 
 
-if __name__ == "__main__":
+if __name__ in ["main", "__main__"]:
 
     args = parse_args(registered_notifications.get_names())
 
