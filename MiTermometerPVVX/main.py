@@ -46,7 +46,7 @@ async def init_logger(debug: bool = False):
     queue_console_handler = logging.StreamHandler()
     queue_console_handler.setLevel(logging.DEBUG if debug else logging.INFO)
     queue_console_handler.setFormatter(
-        logging.Formatter("* Async Queue %(asctime)s [%(levelname)s]: %(message)s")
+        logging.Formatter("* Async %(asctime)s [%(levelname)s]: %(message)s")
     )
     # Set up the QueueListener
     listener = QueueListener(que, queue_console_handler, respect_handler_level=True)
@@ -129,6 +129,7 @@ async def main(
     except asyncio.CancelledError:
         logger.info("Scanning cancelled.")
         scanner.stop_event.set()
+        await asyncio.sleep(1)
 
 
 if __name__ in ["main", "__main__"]:
