@@ -72,7 +72,6 @@ class ConsolePrint(PrintAbstract):
         super().__init__()
         self.print_method = print
 
-
     def format_text(self, text: str, pos: dict = None):
         """
         Format the given text for terminal display, optionally positioning it.
