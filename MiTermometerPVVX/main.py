@@ -129,7 +129,8 @@ async def main(
     except asyncio.CancelledError:
         logger.info("Scanning cancelled.")
         scanner.stop_event.set()
-        await asyncio.sleep(1)
+        await asyncio.sleep(0)
+        await output.close()
 
 
 if __name__ in ["main", "__main__"]:
@@ -153,6 +154,7 @@ if __name__ in ["main", "__main__"]:
     # if custom_names:
     logger.debug(f"Custom Names: {custom_names}")
 
+    # Clear not used notifications from manager
     registered_notifications.filter(args.notification)
 
     asyncio.run(
