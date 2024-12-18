@@ -2,6 +2,8 @@
 
 This project shows telemetry data from a Bluetooth BLE advertising device of type 'ATC_MiThermometer'. It decodes telemetry data (PVVX) after applying custom firmware from [pvvx/ATC_MiThermometer](https://github.com/pvvx/ATC_MiThermometer) (forked from [atc1441/ATC_MiThermometer](https://github.com/atc1441/ATC_MiThermometer)) for the Xiaomi Thermometer LYWSD03MMC.
 
+<img src="https://user-images.githubusercontent.com/3278842/204167827-ad60ba14-c568-4914-939f-60d522297c80.png" width="150" height="150">
+
 ## New Features (Version 0.2.0):
 - **Refactored Code to Use Classes**: The original code (version 0.1.0) has been rewritten to use object-oriented programming (OOP) principles, leveraging classes for better structure and maintainability.
 - **Async Support with `asyncio`**: Major parts of the code have been refactored to use asynchronous programming with `asyncio` to improve performance, especially for handling I/O-bound tasks.
