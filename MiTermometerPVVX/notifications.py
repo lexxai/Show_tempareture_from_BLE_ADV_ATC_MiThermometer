@@ -190,7 +190,10 @@ class NotificationAbstract(ABC):
 
     @abstractmethod
     async def send_alert(
-        self, title: str | None = None, message: str | None = None
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
     ) -> None:
         """
         Sends an alert message.
@@ -198,6 +201,7 @@ class NotificationAbstract(ABC):
         Args:
             title (str | None): The title of the notification, if provided.
             message (str | None): The message content of the notification, if provided.
+            params (dict | None)
         """
         ...
 
@@ -258,13 +262,18 @@ class LoggerNotification(NotificationAbstract):
 
     # @staticmethod
     async def send_alert(
-        self, title: str | None = None, message: str | None = None
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
     ) -> None:
         """Logs a notification message with an optional title and message.
 
         Args:
             title (str | None): The title of the notification, if provided.
             message (str | None): The message content of the notification, if provided.
+            params (dict | None)
+
         """
         if not self.lock:
             logger.error("LoggerNotification has no lock")
@@ -280,13 +289,18 @@ class LoggerNotification(NotificationAbstract):
 
 class PrintNotification(NotificationAbstract):
     async def send_alert(
-        self, title: str | None = None, message: str | None = None
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
     ) -> None:
         """Prints a notification message with an optional title and message.
 
         Args:
             title (str | None): The title of the notification, if provided.
             message (str | None): The message content of the notification, if provided.
+            params (dict | None)
+
         """
         print("\n*** START PRINT NOTIFICATION ***")
         if title:
@@ -299,13 +313,18 @@ class PrintNotification(NotificationAbstract):
 class DiscordNotification(NotificationAbstract):
 
     async def send_alert(
-        self, title: str | None = None, message: str | None = None
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
     ) -> None:
         """Sends a notification message to Discord with an optional title and message.
 
         Args:
             title (str | None): The title of the notification, if provided.
             message (str | None): The message content of the notification, if provided.
+            params (dict | None)
+
         """
         msg_list = []
         if title:
@@ -317,8 +336,9 @@ class DiscordNotification(NotificationAbstract):
         await discord_send_message(discord_message)
 
 
-class PlatformNotification:
+class PlatformNotification(NotificationAbstract):
     def __init__(self):
+        super().__init__()
         self._sender: (
             Callable[..., Awaitable[..., None] | None] | Awaitable[..., None] | None
         ) = None
@@ -432,22 +452,32 @@ class PlatformNotification:
 
         return
 
-
-class SystemNotification(NotificationAbstract):
-    def __init__(self, timeout: int = None):
-        super().__init__()
-        self.sender: (
-            Callable[..., Awaitable[..., None] | None] | Awaitable[..., None] | None
-        ) = PlatformNotification().sender
-
     async def send_alert(
-        self, title: str | None = None, message: str | None = None
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
     ) -> None:
         """Sends an alert message."""
-        if self.sender:
-            await self.sender(title, message)
+        if self._sender:
+            await self._sender(title, message, params)
         else:
             logger.error("sender is not defined as method in this platform")
+
+
+class SystemNotification(PlatformNotification):
+    def __init__(self, params: dict = None):
+        super().__init__()
+        self.params = params
+
+    async def send_alert(
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
+    ) -> None:
+        """Sends an alert message."""
+        await super().send_alert(title, message, params or self.params)
 
 
 # class VoiceNotification(NotificationAbstract):
