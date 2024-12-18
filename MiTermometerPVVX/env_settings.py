@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -48,6 +49,13 @@ class Settings:
 
         self.BASE_PATH = Path(__file__).parent
         self.APP_NAME = self.BASE_PATH.name or "BLE metrics and notification"
+
+        if getattr(sys, "frozen", False):
+            # When running as a PyInstaller bundle
+            self.ICON = os.path.join(sys._MEIPASS, "icon-64x64.ico")
+            # print(f"PyInstaller {self.ICON=} ")
+        else:
+            self.ICON = str(self.BASE_PATH.parent.joinpath("icon-64x64.ico"))
 
 
 # Example usage
