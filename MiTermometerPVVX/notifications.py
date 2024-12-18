@@ -304,7 +304,7 @@ class SystemNotification(NotificationAbstract):
         super().__init__()
         self.on_platform = getattr(notification, "notify", None)
         self.timeout = timeout or 1
-        self.icon = str(settings.BASE_PATH.parent.joinpath("icon-64x64.ico"))
+        self.icon = settings.ICON
         self.app_name = settings.APP_NAME
 
     async def send_alert(
