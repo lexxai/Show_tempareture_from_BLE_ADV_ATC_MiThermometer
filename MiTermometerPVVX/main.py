@@ -13,6 +13,7 @@ from notifications import (
     LoggerNotification,
     ManagerNotifications,
     SystemNotification,
+    VoiceNotification,
 )
 
 from outputs import ConsolePrint
@@ -22,7 +23,12 @@ from blescanner import BLEScanner
 print_lock = asyncio.Lock()
 try:
     registered_notifications = ManagerNotifications(
-        [LoggerNotification(print_lock), DiscordNotification(), SystemNotification()]
+        [
+            LoggerNotification(print_lock),
+            DiscordNotification(),
+            SystemNotification(),
+            VoiceNotification(),
+        ]
     )
 except NameError as e:
     print(f"Error registering notifications: {e} {type(e)}")
