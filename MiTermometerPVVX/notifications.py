@@ -16,7 +16,7 @@ from windows_toasts import (
 )
 
 from env_settings import settings
-from utils import AsyncWithDummy
+from utils import AsyncWithDummy, run_in_async_thread
 from discord_api import send_message as discord_send_message
 
 # from plyer import notification
@@ -312,7 +312,7 @@ class DiscordNotification(NotificationAbstract):
 class SystemNotification(NotificationAbstract):
     def __init__(self, timeout: int = None):
         super().__init__()
-        self.on_platform = getattr(notification, "notify", None)
+        self.on_platform_plyer = getattr(notification, "notify", None)
         self.timeout = timeout or 1
         self.icon = settings.ICON
         self.app_name = settings.APP_NAME
@@ -321,47 +321,12 @@ class SystemNotification(NotificationAbstract):
         else:
             self.sender = self.send_alert_plyer
 
-    # Not use HISTORY
-    # def send_windows_toast(self, title: str | None = None, message: str | None = None):
-    #     from win10toast import ToastNotifier
-    #
-    #     toaster = ToastNotifier()
-    #     toaster.show_toast(title, message, duration=10)
-
-    # CAN'T INSTALL WINRT
-    # def sent_winrt(self, title: str | None = None, message: str | None = None):
-    #
-    #     # from winrt.windows.ui.notifications import (
-    #     #     ToastNotification,
-    #     #     ToastNotificationManager,
-    #     # )
-    #     # from winrt.windows.data.xml.dom import XmlDocument
-    #
-    #     # Create toast notification content
-    #     content = f"""
-    #     <toast>
-    #         <visual>
-    #             <binding template="ToastGeneric">
-    #                 <text>{title}</text>
-    #                 <text>{message}</text>
-    #             </binding>
-    #         </visual>
-    #     </toast>
-    #     """
-    #     xml_doc = XmlDocument()
-    #     xml_doc.load_xml(content)
-    #
-    #     # Create and show toast notification
-    #     notifier = ToastNotificationManager.create_toast_notifier("YourAppName")
-    #     notification = ToastNotification(xml_doc)
-    #     notifier.show(notification)
-
     async def send_alert_plyer(
         self, title: str | None = None, message: str | None = None
     ) -> None:
         """Sends an alert message by use plyer"""
 
-        if not self.on_platform:
+        if not self.on_platform_plyer:
             logger.warning("SYSTEM NOTIFICATION is not available on this platform.")
             return
         # logger.debug("*** START SYSTEM NOTIFICATION ***")
@@ -377,7 +342,8 @@ class SystemNotification(NotificationAbstract):
         asyncio.create_task(coro)
         # logger.debug("*** END SYSTEM NOTIFICATION ***")
 
-    async def send_alert_windows_toasts(
+    @run_in_async_thread
+    def send_alert_windows_toasts(
         self, title: str | None = None, message: str | None = None
     ) -> None:
         """Sends an alert message by use plyer"""
@@ -400,9 +366,9 @@ class SystemNotification(NotificationAbstract):
             toaster = WindowsToaster(self.app_name)
 
             # Send the notification
-            # toaster.show_toast(toast)
-            coro = asyncio.to_thread(toaster.show_toast, toast)
-            asyncio.create_task(coro)
+            toaster.show_toast(toast)
+            # coro = asyncio.to_thread(toaster.show_toast, toast)
+            # asyncio.create_task(coro)
         finally:
             ...
 
