@@ -6,20 +6,19 @@ from typing import Protocol, TypeVar
 
 from plyer import notification
 
-from windows_toasts import (
-    Toast,
-    WindowsToaster,
-    ToastImage,
-    ToastDisplayImage,
-    ToastImagePosition,
-    ToastDuration,
-)
+try:
+    from windows_toasts import (
+        Toast,
+        WindowsToaster,
+        ToastDisplayImage,
+        ToastDuration,
+    )
+except ImportError:
+    ...
 
 from env_settings import settings
 from utils import AsyncWithDummy, run_in_async_thread
 from discord_api import send_message as discord_send_message
-
-# from plyer import notification
 
 logger = logging.getLogger(f"BLEScanner.{__name__}")
 
