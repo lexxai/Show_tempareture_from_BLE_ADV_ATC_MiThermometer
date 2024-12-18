@@ -211,12 +211,15 @@ class BLEScanner:
         threshold_value: float = None,
     ) -> tuple:
         device_name = device_name or "Unknown Device"
+        unit = "°C"
         threshold_text = "lower" if threshold_type == 0 else "higher"
         threshold_value_text = (
-            f"{threshold_value} °C" if threshold_value else "threshold value"
+            f"{threshold_value} {unit}" if threshold_value else "threshold value"
         )
-        title = f"Temperature Alert for {threshold_text} than {threshold_value_text}"
-        message = f"{device_name}: {temp:.2f} °C" if temp else None
+        title = f"Alert: Temp {threshold_text} than {threshold_value}{unit}"
+        # title = f"Temp. Alert for {threshold_text} than {threshold_value_text}"
+
+        message = f"{device_name}: {temp:.2f} {unit}" if temp else None
 
         return title, message
 
