@@ -388,10 +388,10 @@ class SystemNotification(NotificationAbstract):
         toast.title = title
         toast.text_fields = [title, message]
         icon = ToastDisplayImage.fromPath(self.icon, circleCrop=True)
-        icon0 = ToastDisplayImage.fromPath(
-            self.icon, circleCrop=True, position=ToastImagePosition.AppLogo
-        )
-        toast.AddImage(icon0)
+        # icon0 = ToastDisplayImage.fromPath(
+        #     self.icon, circleCrop=True, position=ToastImagePosition.AppLogo
+        # )
+        # toast.AddImage(icon0)
         toast.AddImage(icon)
 
         # Create a WindowsToaster instance to send the notification
