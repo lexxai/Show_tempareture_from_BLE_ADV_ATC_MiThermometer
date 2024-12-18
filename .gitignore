@@ -131,3 +131,5 @@ dmypy.json
 .pyre/
 MiTermometerPVVX/.vscode/settings.json
 poetry.lock
+script/.DS_Store
+.DS_Store

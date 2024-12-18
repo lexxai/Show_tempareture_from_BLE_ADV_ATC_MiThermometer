@@ -1,5 +1,5 @@
 import os
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 from threading import Lock
 
 
@@ -26,9 +26,13 @@ class Settings:
 
     def _initialize(self):
         # Load .env file
-        load_dotenv()
+
+        loaded_dotenv = load_dotenv()
 
         self.DEBUG = os.getenv("DEBUG", "False").strip().lower() == "true"
+        # if self.DEBUG:
+        print(f".env file loaded ({loaded_dotenv}): {find_dotenv()}")
+
         self.ATC_CUSTOM_NAMES = self._load_custom_names()
 
         self.ALERT_LOW_THRESHOLD = os.getenv("ALERT_LOW_THRESHOLD")
