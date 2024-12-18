@@ -13,7 +13,6 @@ from notifications import (
     LoggerNotification,
     ManagerNotifications,
     SystemNotification,
-    VoiceNotification,
 )
 
 from outputs import ConsolePrint
@@ -27,7 +26,6 @@ try:
             LoggerNotification(print_lock),
             DiscordNotification(),
             SystemNotification(),
-            VoiceNotification(),
         ]
     )
 except NameError as e:

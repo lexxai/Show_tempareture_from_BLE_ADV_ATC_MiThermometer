@@ -4,17 +4,22 @@ import platform
 from abc import ABC, abstractmethod
 from typing import Protocol, TypeVar
 
-from plyer import notification
+if platform.system() == "Darwin":  # macOS
+    try:
+        from pync import Notifier
+    except ImportError:
+        ...
 
-try:
-    from windows_toasts import (
-        Toast,
-        WindowsToaster,
-        ToastDisplayImage,
-        ToastDuration,
-    )
-except ImportError:
-    ...
+if platform.system() == "Windows":
+    try:
+        from windows_toasts import (
+            Toast,
+            WindowsToaster,
+            ToastDisplayImage,
+            ToastDuration,
+        )
+    except ImportError:
+        ...
 
 from env_settings import settings
 from utils import AsyncWithDummy, run_in_async_thread
@@ -311,14 +316,22 @@ class DiscordNotification(NotificationAbstract):
 class SystemNotification(NotificationAbstract):
     def __init__(self, timeout: int = None):
         super().__init__()
-        self.on_platform_plyer = getattr(notification, "notify", None)
         self.timeout = timeout or 1
         self.icon = settings.ICON
         self.app_name = settings.APP_NAME
         if platform.system() == "Windows":
             self.sender = self.send_alert_windows_toasts
+        elif platform.system() == "Darwin":
+            self.sender = self.send_alert_pync
         else:
             self.sender = self.send_alert_plyer
+
+    @run_in_async_thread
+    def send_alert_pync(
+        self, title: str | None = None, message: str | None = None
+    ) -> None:
+        Notifier.notify(message, title=title)
+        return
 
     async def send_alert_plyer(
         self, title: str | None = None, message: str | None = None
@@ -381,24 +394,24 @@ class SystemNotification(NotificationAbstract):
         await self.sender(title, message)
 
 
-class VoiceNotification(NotificationAbstract):
+# class VoiceNotification(NotificationAbstract):
 
-    def __init__(self):
-        super().__init__()
-        self.on_platform = getattr(notification, "speak", None)
+#     def __init__(self):
+#         super().__init__()
+#         self.on_platform = getattr(notification, "speak", None)
 
-    async def send_alert(
-        self, title: str | None = None, message: str | None = None
-    ) -> None:
-        """Sends an alert message."""
-        if not self.on_platform:
-            logger.warning("VOICE NOTIFICATION is not available on this platform.")
-            return
+#     async def send_alert(
+#         self, title: str | None = None, message: str | None = None
+#     ) -> None:
+#         """Sends an alert message."""
+#         if not self.on_platform:
+#             logger.warning("VOICE NOTIFICATION is not available on this platform.")
+#             return
 
-        # logger.debug("*** START VOICE NOTIFICATION ***")
-        coro = asyncio.to_thread(
-            notification.speak,
-            message=message,
-        )
-        asyncio.create_task(coro)
-        # logger.debug("*** END VOICE NOTIFICATION ***")
+#         # logger.debug("*** START VOICE NOTIFICATION ***")
+#         coro = asyncio.to_thread(
+#             notification.speak,
+#             message=message,
+#         )
+#         asyncio.create_task(coro)
+#         # logger.debug("*** END VOICE NOTIFICATION ***")
