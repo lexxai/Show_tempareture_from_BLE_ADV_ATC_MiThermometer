@@ -1,11 +1,18 @@
 import asyncio
 import logging
+import platform
 from abc import ABC, abstractmethod
 from typing import Protocol, TypeVar
 
 from plyer import notification
 
-from windows_toasts import Toast, WindowsToaster
+from windows_toasts import (
+    Toast,
+    WindowsToaster,
+    ToastImage,
+    ToastDisplayImage,
+    ToastImagePosition,
+)
 
 from env_settings import settings
 from utils import AsyncWithDummy
@@ -308,6 +315,10 @@ class SystemNotification(NotificationAbstract):
         self.timeout = timeout or 1
         self.icon = settings.ICON
         self.app_name = settings.APP_NAME
+        if platform.system() == "Windows":
+            self.sender = self.send_alert_windows_toasts
+        else:
+            self.sender = self.send_alert_plyer
 
     # Not use HISTORY
     # def send_windows_toast(self, title: str | None = None, message: str | None = None):
@@ -317,32 +328,32 @@ class SystemNotification(NotificationAbstract):
     #     toaster.show_toast(title, message, duration=10)
 
     # CAN'T INSTALL WINRT
-    def sent_winrt(self, title: str | None = None, message: str | None = None):
-
-        # from winrt.windows.ui.notifications import (
-        #     ToastNotification,
-        #     ToastNotificationManager,
-        # )
-        # from winrt.windows.data.xml.dom import XmlDocument
-
-        # Create toast notification content
-        content = f"""
-        <toast>
-            <visual>
-                <binding template="ToastGeneric">
-                    <text>{title}</text>
-                    <text>{message}</text>
-                </binding>
-            </visual>
-        </toast>
-        """
-        xml_doc = XmlDocument()
-        xml_doc.load_xml(content)
-
-        # Create and show toast notification
-        notifier = ToastNotificationManager.create_toast_notifier("YourAppName")
-        notification = ToastNotification(xml_doc)
-        notifier.show(notification)
+    # def sent_winrt(self, title: str | None = None, message: str | None = None):
+    #
+    #     # from winrt.windows.ui.notifications import (
+    #     #     ToastNotification,
+    #     #     ToastNotificationManager,
+    #     # )
+    #     # from winrt.windows.data.xml.dom import XmlDocument
+    #
+    #     # Create toast notification content
+    #     content = f"""
+    #     <toast>
+    #         <visual>
+    #             <binding template="ToastGeneric">
+    #                 <text>{title}</text>
+    #                 <text>{message}</text>
+    #             </binding>
+    #         </visual>
+    #     </toast>
+    #     """
+    #     xml_doc = XmlDocument()
+    #     xml_doc.load_xml(content)
+    #
+    #     # Create and show toast notification
+    #     notifier = ToastNotificationManager.create_toast_notifier("YourAppName")
+    #     notification = ToastNotification(xml_doc)
+    #     notifier.show(notification)
 
     async def send_alert_plyer(
         self, title: str | None = None, message: str | None = None
@@ -376,12 +387,20 @@ class SystemNotification(NotificationAbstract):
         # Set the title and message
         toast.title = title
         toast.text_fields = [title, message]
+        icon = ToastDisplayImage.fromPath(self.icon, circleCrop=True)
+        icon0 = ToastDisplayImage.fromPath(
+            self.icon, circleCrop=True, position=ToastImagePosition.AppLogo
+        )
+        toast.AddImage(icon0)
+        toast.AddImage(icon)
 
         # Create a WindowsToaster instance to send the notification
-        toaster = WindowsToaster(settings.APP_NAME)
+        toaster = WindowsToaster(self.app_name)
 
         # Send the notification
         toaster.show_toast(toast)
+        coro = asyncio.to_thread(toaster.show_toast, toast)
+        asyncio.create_task(coro)
 
         return
 
@@ -390,7 +409,7 @@ class SystemNotification(NotificationAbstract):
     ) -> None:
         """Sends an alert message."""
         # await self.send_alert_plyer(title, message)
-        await self.send_alert_windows_toasts(title, message)
+        await self.sender(title, message)
 
 
 class VoiceNotification(NotificationAbstract):
