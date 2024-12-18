@@ -12,6 +12,7 @@ bleak = "^0.22.3"
 python-dotenv = "^1.0.1"
 httpx = {extras = ["http2"], version = "^0.28.1"}
 plyer = "^2.1.0"
+windows-toasts = "^1.3.0"
 
 
 [tool.poetry.group.dev.dependencies]
