@@ -48,7 +48,7 @@ class Settings:
             self.BLE_SCANNER_MODE = "auto"
 
         self.BASE_PATH = Path(__file__).parent
-        self.APP_NAME = self.BASE_PATH.name or "BLE metrics and notification"
+        self.APP_NAME = "BLE metrics and notification"
 
         if getattr(sys, "frozen", False):
             # When running as a PyInstaller bundle
