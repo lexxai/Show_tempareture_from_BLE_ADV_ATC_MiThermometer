@@ -12,6 +12,7 @@ from windows_toasts import (
     ToastImage,
     ToastDisplayImage,
     ToastImagePosition,
+    ToastDuration,
 )
 
 from env_settings import settings
@@ -380,27 +381,30 @@ class SystemNotification(NotificationAbstract):
         self, title: str | None = None, message: str | None = None
     ) -> None:
         """Sends an alert message by use plyer"""
+        try:
+            # Create a Toast notification
+            toast = Toast()
 
-        # Create a Toast notification
-        toast = Toast()
+            # Set the title and message
+            toast.title = title
+            toast.text_fields = [title, message]
+            icon = ToastDisplayImage.fromPath(self.icon, circleCrop=True)
+            # icon0 = ToastDisplayImage.fromPath(
+            #     self.icon, circleCrop=True, position=ToastImagePosition.AppLogo
+            # )
+            # toast.AddImage(icon0)
+            toast.AddImage(icon)
+            toast.duration = ToastDuration.Long
 
-        # Set the title and message
-        toast.title = title
-        toast.text_fields = [title, message]
-        icon = ToastDisplayImage.fromPath(self.icon, circleCrop=True)
-        # icon0 = ToastDisplayImage.fromPath(
-        #     self.icon, circleCrop=True, position=ToastImagePosition.AppLogo
-        # )
-        # toast.AddImage(icon0)
-        toast.AddImage(icon)
+            # Create a WindowsToaster instance to send the notification
+            toaster = WindowsToaster(self.app_name)
 
-        # Create a WindowsToaster instance to send the notification
-        toaster = WindowsToaster(self.app_name)
-
-        # Send the notification
-        toaster.show_toast(toast)
-        coro = asyncio.to_thread(toaster.show_toast, toast)
-        asyncio.create_task(coro)
+            # Send the notification
+            # toaster.show_toast(toast)
+            coro = asyncio.to_thread(toaster.show_toast, toast)
+            asyncio.create_task(coro)
+        finally:
+            ...
 
         return
 
