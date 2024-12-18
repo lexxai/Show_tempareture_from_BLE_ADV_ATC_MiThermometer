@@ -330,28 +330,37 @@ class SystemNotification(NotificationAbstract):
     def send_alert_pync(
         self, title: str | None = None, message: str | None = None
     ) -> None:
-        Notifier.notify(message, title=title)
+        if platform.system() == "Darwin":
+            try:
+                Notifier.notify(message, title=title, app_icon=self.icon, app_name=self.app_name)  # type: ignore
+            finally:
+                ...
+        else:
+            logger.warning("*** NOT SUPPORTED PLATFORM ***")
         return
 
-    async def send_alert_plyer(
+    @run_in_async_thread
+    def send_alert_plyer(
         self, title: str | None = None, message: str | None = None
     ) -> None:
         """Sends an alert message by use plyer"""
 
-        if not self.on_platform_plyer:
-            logger.warning("SYSTEM NOTIFICATION is not available on this platform.")
-            return
-        # logger.debug("*** START SYSTEM NOTIFICATION ***")
-        coro = asyncio.to_thread(
-            notification.notify,
-            title=title,
-            message=message,
-            timeout=self.timeout,
-            app_name=self.app_name,
-            app_icon=self.icon,
-            ticker=title,
-        )
-        asyncio.create_task(coro)
+        if platform.system() == "Linux":
+            # logger.debug("*** START SYSTEM NOTIFICATION ***")
+            try:
+                notification.notify(  # type: ignore
+                    title=title,
+                    message=message,
+                    timeout=self.timeout,
+                    app_name=self.app_name,
+                    app_icon=self.icon,
+                    ticker=title,
+                )
+            finally:
+                ...
+        else:
+            logger.warning("*** NOT SUPPORTED PLATFORM ***")
+        # asyncio.create_task(coro)
         # logger.debug("*** END SYSTEM NOTIFICATION ***")
 
     @run_in_async_thread
@@ -359,30 +368,33 @@ class SystemNotification(NotificationAbstract):
         self, title: str | None = None, message: str | None = None
     ) -> None:
         """Sends an alert message by use plyer"""
-        try:
-            # Create a Toast notification
-            toast = Toast()
+        if platform.system() == "Windows":
+            try:
+                # Create a Toast notification
+                toast = Toast()
 
-            # Set the title and message
-            toast.title = title
-            toast.text_fields = [title, message]
-            icon = ToastDisplayImage.fromPath(self.icon, circleCrop=True)
-            # icon0 = ToastDisplayImage.fromPath(
-            #     self.icon, circleCrop=True, position=ToastImagePosition.AppLogo
-            # )
-            # toast.AddImage(icon0)
-            toast.AddImage(icon)
-            toast.duration = ToastDuration.Long
+                # Set the title and message
+                toast.title = title
+                toast.text_fields = [title, message]
+                icon = ToastDisplayImage.fromPath(self.icon, circleCrop=True)
+                # icon0 = ToastDisplayImage.fromPath(
+                #     self.icon, circleCrop=True, position=ToastImagePosition.AppLogo
+                # )
+                # toast.AddImage(icon0)
+                toast.AddImage(icon)
+                toast.duration = ToastDuration.Long
 
-            # Create a WindowsToaster instance to send the notification
-            toaster = WindowsToaster(self.app_name)
+                # Create a WindowsToaster instance to send the notification
+                toaster = WindowsToaster(self.app_name)
 
-            # Send the notification
-            toaster.show_toast(toast)
-            # coro = asyncio.to_thread(toaster.show_toast, toast)
-            # asyncio.create_task(coro)
-        finally:
-            ...
+                # Send the notification
+                toaster.show_toast(toast)
+                # coro = asyncio.to_thread(toaster.show_toast, toast)
+                # asyncio.create_task(coro)
+            finally:
+                ...
+        else:
+            logger.warning("*** NOT SUPPORTED PLATFORM ***")
 
         return
 

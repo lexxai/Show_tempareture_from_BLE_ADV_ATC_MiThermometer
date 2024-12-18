@@ -1,4 +1,5 @@
 import os
+import platform
 import sys
 from pathlib import Path
 
@@ -50,12 +51,16 @@ class Settings:
         self.BASE_PATH = Path(__file__).parent
         self.APP_NAME = "BLE metrics and notification"
 
+        icon_file = (
+            "icon-64x64.ico" if platform.system() == "Windows" else "icon-64x64.png"
+        )
+
         if getattr(sys, "frozen", False):
             # When running as a PyInstaller bundle
-            self.ICON = os.path.join(sys._MEIPASS, "icon-64x64.ico")
+            self.ICON = os.path.join(sys._MEIPASS, icon_file)
             # print(f"PyInstaller {self.ICON=} ")
         else:
-            self.ICON = str(self.BASE_PATH.parent.joinpath("icon-64x64.ico"))
+            self.ICON = str(self.BASE_PATH.parent.joinpath(icon_file).absolute())
 
 
 # Example usage
