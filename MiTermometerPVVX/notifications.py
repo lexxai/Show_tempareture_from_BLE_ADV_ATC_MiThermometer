@@ -333,7 +333,7 @@ class SystemNotification(NotificationAbstract):
         if platform.system() == "Darwin":
             try:
                 logger.debug(f"send_alert_pync {self.icon=}")
-                Notifier.notify(message, title=title, app_icon=self.icon, app_name=self.app_name)  # type: ignore
+                Notifier.notify(message, title=title)  # type: ignore
             finally:
                 ...
         else:
