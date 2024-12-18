@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 from threading import Lock
 
@@ -43,6 +45,9 @@ class Settings:
         self.BLE_SCANNER_MODE = os.getenv("BLE_SCANNER_MODE", "auto").lower()
         if self.BLE_SCANNER_MODE not in ["auto", "passive", "active"]:
             self.BLE_SCANNER_MODE = "auto"
+
+        self.BASE_PATH = Path(__file__).parent
+        self.APP_NAME = self.BASE_PATH.name or "BLE metrics and notification"
 
 
 # Example usage

@@ -3,6 +3,9 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Protocol, TypeVar
 
+from plyer import notification
+
+from env_settings import settings
 from utils import AsyncWithDummy
 from discord_api import send_message as discord_send_message
 
@@ -165,22 +168,26 @@ class DiscordNotification(NotificationAbstract):
 
 
 class SystemNotification(NotificationAbstract):
+    def __init__(self, timeout: int = None):
+        super().__init__()
+        self.timeout = timeout or 30
+        self.icon = str(settings.BASE_PATH.parent.joinpath("icon-64x64.ico"))
+        self.app_name = settings.APP_NAME
+
     async def send_alert(
         self, title: str | None = None, message: str | None = None
     ) -> None:
         """Sends an alert message."""
-        logger.info("*** START SYSTEM NOTIFICATION ***")
-        if title:
-            logger.info(f"Title: {title}")
-        if message:
-            logger.info(f"Message: {message}")
-        logger.info("*** END SYSTEM NOTIFICATION ***")
-        # Using plyer for cross-platform tasks
-        # notification.notify(
-        #     title=alert_title,
-        #     message=alert_message,
-        #     timeout=10,  # Notification will disappear after 10 seconds
-        # )
+        logger.debug("*** START SYSTEM NOTIFICATION ***")
+        await asyncio.to_thread(
+            notification.notify,
+            title=title,
+            message=message,
+            timeout=self.timeout,
+            app_name=self.app_name,
+            app_icon=self.icon,
+        )
+        logger.debug("*** END SYSTEM NOTIFICATION ***")
 
 
 T = TypeVar("T", bound="TaskProtocol")
