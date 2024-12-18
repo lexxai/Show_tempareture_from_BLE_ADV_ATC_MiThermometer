@@ -2,6 +2,8 @@ import asyncio
 import datetime
 from functools import wraps
 import logging
+from typing import Literal
+
 from bleak import BleakScanner, BleakError
 
 from notifications import ManagerNotifications
@@ -205,8 +207,8 @@ class BLEScanner:
             if date_diff:
                 await self.print_text(f"Duration: {str(date_diff).split('.')[0]}")
 
+    @staticmethod
     def generate_title_message(
-        self,
         device_name: str = None,
         temp: float = None,
         threshold_type: int = 0,  # 0 = lower, 2 - higher
@@ -284,9 +286,12 @@ class BLEScanner:
         """Start scanning for BLE devices."""
         # self.print_clear()
         modes = ("passive", "active") if self.mode.lower() == "auto" else (self.mode,)
+        mode: Literal["active", "passive"]
         for mode in modes:
             logger.info(f"Scanning BLE devices in {mode} mode...")
             try:
+                if mode not in ["active", "passive"]:
+                    raise ValueError("Mode must be either 'active' or 'passive'.")
                 async with BleakScanner(
                     self.process_advertising_data, scanning_mode=mode
                 ):
