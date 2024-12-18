@@ -317,40 +317,51 @@ class DiscordNotification(NotificationAbstract):
         await discord_send_message(discord_message)
 
 
-class SystemNotification(NotificationAbstract):
-    def __init__(self, timeout: int = None):
-        super().__init__()
-        self.timeout = timeout or 1
-        self.icon = settings.ICON
-        self.app_name = settings.APP_NAME
-        self.sender: (
+class PlatformNotification:
+    def __init__(self):
+        self._sender: (
             Callable[..., Awaitable[..., None] | None] | Awaitable[..., None] | None
         ) = None
-
         match platform.system():
             case "Windows":
                 if all([Toast, WindowsToaster, ToastDisplayImage, ToastDuration]):
-                    self.sender = self.send_alert_windows_toasts
+                    self._sender = self.send_alert_windows_toasts
                 else:
                     logger.error(f"Error windows_toasts import")
             case "Darwin":
                 if Notifier:
-                    self.sender = self.send_alert_pync
+                    self._sender = self.send_alert_pync
                 else:
                     logger.error(f"Error pync import")
             case "Linux":
                 if notification:
-                    self.sender = self.send_alert_plyer
+                    self._sender = self.send_alert_plyer
                 else:
                     logger.error(f"Error plyer import")
 
+    @property
+    def sender(self):
+        """
+        Return Awaitable method for send notification with for this platform:
+            argument title: str | None = None,
+            argument message: str | None = None,
+            argument params: dict | None = None,
+        :return: None
+        """
+        return self._sender
+
     @run_in_async_thread
     def send_alert_pync(
-        self, title: str | None = None, message: str | None = None
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
     ) -> None:
         if platform.system() == "Darwin":
+            # if params is None:
+            #     params = {}
             try:
-                logger.debug(f"send_alert_pync {self.icon=}")
+                # logger.debug(f"send_alert_pync {params.get("icon")=}")
                 Notifier.notify(message, title=title)  # type: ignore
             except Exception as e:
                 logger.error(f"ERROR pync: {e}")
@@ -360,19 +371,25 @@ class SystemNotification(NotificationAbstract):
 
     @run_in_async_thread
     def send_alert_plyer(
-        self, title: str | None = None, message: str | None = None
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
     ) -> None:
         """Sends an alert message by use plyer"""
-
         if platform.system() == "Linux":
+            if params is None:
+                params = {}
             # logger.debug("*** START SYSTEM NOTIFICATION ***")
             try:
+                app_name = params.get("app_name", settings.APP_NAME)
+                app_icon = params.get("icon", settings.ICON)
                 notification.notify(  # type: ignore
                     title=title,
                     message=message,
-                    timeout=self.timeout,
-                    app_name=self.app_name,
-                    app_icon=self.icon,
+                    timeout=params.get("timeout", 1),
+                    app_name=app_name,
+                    app_icon=app_icon,
                     ticker=title,
                 )
             except Exception as e:
@@ -384,21 +401,28 @@ class SystemNotification(NotificationAbstract):
 
     @run_in_async_thread
     def send_alert_windows_toasts(
-        self, title: str | None = None, message: str | None = None
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
     ) -> None:
         """Sends an alert message by use plyer"""
         if platform.system() == "Windows":
+            if params is None:
+                params = {}
+            app_icon = params.get("icon", settings.ICON)
+            app_name = params.get("app_name", settings.APP_NAME)
             try:
                 # Create a Toast notification
                 toast = Toast()  # type: ignore
 
                 toast.title = title
                 toast.text_fields = [title, message]
-                icon = ToastDisplayImage.fromPath(self.icon, circleCrop=True)  # type: ignore
+                icon = ToastDisplayImage.fromPath(app_icon, circleCrop=True)  # type: ignore
                 toast.AddImage(icon)
                 toast.duration = ToastDuration.Long  # type: ignore
 
-                toaster = WindowsToaster(self.app_name)  # type: ignore
+                toaster = WindowsToaster(app_name)  # type: ignore
 
                 toaster.show_toast(toast)
             except Exception as e:
@@ -408,15 +432,22 @@ class SystemNotification(NotificationAbstract):
 
         return
 
+
+class SystemNotification(NotificationAbstract):
+    def __init__(self, timeout: int = None):
+        super().__init__()
+        self.sender: (
+            Callable[..., Awaitable[..., None] | None] | Awaitable[..., None] | None
+        ) = PlatformNotification().sender
+
     async def send_alert(
         self, title: str | None = None, message: str | None = None
     ) -> None:
         """Sends an alert message."""
-        # await self.send_alert_plyer(title, message)
         if self.sender:
             await self.sender(title, message)
         else:
-            logger.error("sender is not defined as method")
+            logger.error("sender is not defined as method in this platform")
 
 
 # class VoiceNotification(NotificationAbstract):
