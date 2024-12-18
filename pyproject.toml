@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "show-temperature-from-ble-adv-atc-mithermometer"
-version = "0.2.0"
+version = "0.2.2"
 description = "Show temperature and humidity from BLE ADV 'ATC MiThermometer'"
 authors = ["lexxai <lexxai@gmail.com>"]
 license = "MIT"
@@ -9,7 +9,6 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11,<3.14"
 bleak = "^0.22.3"
-plyer = "^2.1.0"
 python-dotenv = "^1.0.1"
 httpx = {extras = ["http2"], version = "^0.28.1"}
 
