@@ -216,9 +216,7 @@ class BLEScanner:
         threshold_value_text = (
             f"{threshold_value} {unit}" if threshold_value else "threshold value"
         )
-        title = f"Alert: Temp {threshold_text} than {threshold_value}{unit}"
-        # title = f"Temp. Alert for {threshold_text} than {threshold_value_text}"
-
+        title = f"Alert: Temp {threshold_text} than {threshold_value_text}"
         message = f"{device_name}: {temp:.2f} {unit}" if temp else None
 
         return title, message
