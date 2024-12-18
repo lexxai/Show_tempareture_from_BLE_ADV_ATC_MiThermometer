@@ -2,10 +2,10 @@ import asyncio
 import logging
 import platform
 from abc import ABC, abstractmethod
-from typing import Protocol, TypeVar, Coroutine, Awaitable, Callable, Any
+from typing import Protocol, TypeVar, Awaitable, Callable
 
 from env_settings import settings
-from utils import AsyncWithDummy, run_in_async_thread
+from utils import run_in_async_thread
 from discord_api import send_message as discord_send_message
 
 try:
@@ -179,14 +179,14 @@ class NotificationAbstract(ABC):
         super().__init__()
 
     @property
-    def lock(self) -> AsyncWithDummy:
+    def lock(self) -> asyncio.Lock:
         """
         Returns a lock object for use when sending notifications.
 
         Returns:
-            AsyncWithDummy: An asyncio lock.
+            asyncio.Lock: An asyncio lock.
         """
-        return AsyncWithDummy()
+        return asyncio.Lock()
 
     @abstractmethod
     async def send_alert(
@@ -241,24 +241,24 @@ class LoggerNotification(NotificationAbstract):
         Initializes the LoggerNotification object.
 
         Args:
-            lock (asyncio.Lock | AsyncWithDummy): The lock to use when sending
+            lock (asyncio.Lock ): The lock to use when sending
                 notifications. If not provided, a dummy lock is used.
         """
         super().__init__()
         self._lock = lock
 
     @property
-    def lock(self) -> asyncio.Lock | AsyncWithDummy:
+    def lock(self) -> asyncio.Lock:
         """
         Returns the lock object for use when sending notifications.
 
         If no lock is provided, a dummy lock is used.
 
         Returns:
-            asyncio.Lock | AsyncWithDummy: The lock object to use when sending
+            asyncio.Lock : The lock object to use when sending
                 notifications.
         """
-        return self._lock or AsyncWithDummy()
+        return self._lock or asyncio.Lock()
 
     # @staticmethod
     async def send_alert(
