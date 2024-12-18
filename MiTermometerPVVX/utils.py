@@ -14,7 +14,7 @@ class AsyncWithDummy(asyncio.Lock):
 
 def run_in_async_thread(func):
     @wraps(func)
-    async def wrapper(*args, **kwargs):
+    async def wrapper(*args, **kwargs) -> None:
         # Run the function in a separate thread
         coro = asyncio.to_thread(func, *args, **kwargs)
         # Create and run the task asynchronously

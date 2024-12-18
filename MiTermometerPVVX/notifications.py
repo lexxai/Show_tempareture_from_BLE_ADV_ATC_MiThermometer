@@ -2,28 +2,32 @@ import asyncio
 import logging
 import platform
 from abc import ABC, abstractmethod
-from typing import Protocol, TypeVar
-
-if platform.system() == "Darwin":  # macOS
-    try:
-        from pync import Notifier
-    except ImportError:
-        ...
-
-if platform.system() == "Windows":
-    try:
-        from windows_toasts import (
-            Toast,
-            WindowsToaster,
-            ToastDisplayImage,
-            ToastDuration,
-        )
-    except ImportError:
-        ...
+from typing import Protocol, TypeVar, Coroutine, Awaitable, Callable, Any
 
 from env_settings import settings
 from utils import AsyncWithDummy, run_in_async_thread
 from discord_api import send_message as discord_send_message
+
+try:
+    from windows_toasts import (
+        Toast,
+        WindowsToaster,
+        ToastDisplayImage,
+        ToastDuration,
+    )
+except ImportError:
+    Toast, WindowsToaster, ToastDisplayImage, ToastDuration = None, None, None, None
+
+try:
+    from pync import Notifier
+except ImportError as e:
+    Notifier = None
+
+try:
+    from plyer import notification
+except ImportError as e:
+    notification = None
+
 
 logger = logging.getLogger(f"BLEScanner.{__name__}")
 
@@ -319,12 +323,26 @@ class SystemNotification(NotificationAbstract):
         self.timeout = timeout or 1
         self.icon = settings.ICON
         self.app_name = settings.APP_NAME
-        if platform.system() == "Windows":
-            self.sender = self.send_alert_windows_toasts
-        elif platform.system() == "Darwin":
-            self.sender = self.send_alert_pync
-        else:
-            self.sender = self.send_alert_plyer
+        self.sender: (
+            Callable[..., Awaitable[..., None] | None] | Awaitable[..., None] | None
+        ) = None
+
+        match platform.system():
+            case "Windows":
+                if all([Toast, WindowsToaster, ToastDisplayImage, ToastDuration]):
+                    self.sender = self.send_alert_windows_toasts
+                else:
+                    logger.error(f"Error windows_toasts import")
+            case "Darwin":
+                if Notifier:
+                    self.sender = self.send_alert_pync
+                else:
+                    logger.error(f"Error pync import")
+            case "Linux":
+                if notification:
+                    self.sender = self.send_alert_plyer
+                else:
+                    logger.error(f"Error plyer import")
 
     @run_in_async_thread
     def send_alert_pync(
@@ -334,8 +352,8 @@ class SystemNotification(NotificationAbstract):
             try:
                 logger.debug(f"send_alert_pync {self.icon=}")
                 Notifier.notify(message, title=title)  # type: ignore
-            finally:
-                ...
+            except Exception as e:
+                logger.error(f"ERROR pync: {e}")
         else:
             logger.warning("*** NOT SUPPORTED PLATFORM ***")
         return
@@ -357,8 +375,8 @@ class SystemNotification(NotificationAbstract):
                     app_icon=self.icon,
                     ticker=title,
                 )
-            finally:
-                ...
+            except Exception as e:
+                logger.error(f"ERROR plyer: {e}")
         else:
             logger.warning("*** NOT SUPPORTED PLATFORM ***")
         # asyncio.create_task(coro)
@@ -372,28 +390,19 @@ class SystemNotification(NotificationAbstract):
         if platform.system() == "Windows":
             try:
                 # Create a Toast notification
-                toast = Toast()
+                toast = Toast()  # type: ignore
 
-                # Set the title and message
                 toast.title = title
                 toast.text_fields = [title, message]
-                icon = ToastDisplayImage.fromPath(self.icon, circleCrop=True)
-                # icon0 = ToastDisplayImage.fromPath(
-                #     self.icon, circleCrop=True, position=ToastImagePosition.AppLogo
-                # )
-                # toast.AddImage(icon0)
+                icon = ToastDisplayImage.fromPath(self.icon, circleCrop=True)  # type: ignore
                 toast.AddImage(icon)
-                toast.duration = ToastDuration.Long
+                toast.duration = ToastDuration.Long  # type: ignore
 
-                # Create a WindowsToaster instance to send the notification
-                toaster = WindowsToaster(self.app_name)
+                toaster = WindowsToaster(self.app_name)  # type: ignore
 
-                # Send the notification
                 toaster.show_toast(toast)
-                # coro = asyncio.to_thread(toaster.show_toast, toast)
-                # asyncio.create_task(coro)
-            finally:
-                ...
+            except Exception as e:
+                logger.error(f"ERROR windows_toasts: {e}")
         else:
             logger.warning("*** NOT SUPPORTED PLATFORM ***")
 
@@ -404,7 +413,10 @@ class SystemNotification(NotificationAbstract):
     ) -> None:
         """Sends an alert message."""
         # await self.send_alert_plyer(title, message)
-        await self.sender(title, message)
+        if self.sender:
+            await self.sender(title, message)
+        else:
+            logger.error("sender is not defined as method")
 
 
 # class VoiceNotification(NotificationAbstract):
