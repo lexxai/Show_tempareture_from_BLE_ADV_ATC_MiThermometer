@@ -133,7 +133,7 @@ class BLEScanner:
             uiid = device.address.split("-")[-1][-6:]
         return self.custom_name("ATC_" + uiid)
 
-    def get_device_name(self, address) -> str | None:
+    def get_device_name(self, address: str) -> str | None:
         """Get the name of a registered BLE device."""
 
         return self.atc_devices.get(address, {}).get("name")
@@ -146,7 +146,9 @@ class BLEScanner:
 
         self.atc_counters[device.address] = count
         date_now = datetime.datetime.now()
-        date_diff = date_now - self.atc_date.get(device.address, date_now)
+        date_diff: datetime.timedelta = date_now - self.atc_date.get(
+            device.address, date_now
+        )
         self.atc_date[device.address] = date_now
 
         temp = int.from_bytes(adv_atc[6:8], byteorder="little", signed=True) / 100.0
@@ -179,15 +181,15 @@ class BLEScanner:
     @output_cols
     async def display_device_info(
         self,
-        address,
-        temp,
-        humidity,
-        battery_v,
-        battery,
-        rssi,
-        count,
-        date_now,
-        date_diff,
+        address: str,
+        temp: float,
+        humidity: float,
+        battery_v: float,
+        battery: int,
+        rssi: int,
+        count: int,
+        date_now: datetime.datetime,
+        date_diff: datetime.timedelta,
     ):
         """Display formatted device information."""
         name = self.get_device_name(address)
@@ -201,7 +203,7 @@ class BLEScanner:
             await self.print_text(f"Count: {count}")
             await self.print_text(f"Last Seen: {date_now.strftime('%H:%M:%S')}")
             if date_diff:
-                await self.print_text(f"Duration: {date_diff}")
+                await self.print_text(f"Duration: {str(date_diff).split('.')[0]}")
 
     def generate_title_message(
         self,
