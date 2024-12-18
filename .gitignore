@@ -133,3 +133,4 @@ MiTermometerPVVX/.vscode/settings.json
 poetry.lock
 versionfile.txt
 .DS_Store
+script/test_*.py
