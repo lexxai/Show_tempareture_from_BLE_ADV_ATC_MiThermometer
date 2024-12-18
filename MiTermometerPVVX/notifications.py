@@ -5,6 +5,7 @@ from typing import Protocol, TypeVar
 
 from plyer import notification
 
+
 from env_settings import settings
 from utils import AsyncWithDummy
 from discord_api import send_message as discord_send_message
@@ -307,10 +308,44 @@ class SystemNotification(NotificationAbstract):
         self.icon = settings.ICON
         self.app_name = settings.APP_NAME
 
-    async def send_alert(
+    # Not use HISTORY
+    # def send_windows_toast(self, title: str | None = None, message: str | None = None):
+    #     from win10toast import ToastNotifier
+    #
+    #     toaster = ToastNotifier()
+    #     toaster.show_toast(title, message, duration=10)
+
+    # def sent_winrt(self, title: str | None = None, message: str | None = None):
+    #     from winrt.windows.ui.notifications import (
+    #         ToastNotification,
+    #         ToastNotificationManager,
+    #     )
+    #     from winrt.windows.data.xml.dom import XmlDocument
+    #
+    #     # Create toast notification content
+    #     content = f"""
+    #     <toast>
+    #         <visual>
+    #             <binding template="ToastGeneric">
+    #                 <text>{title}</text>
+    #                 <text>{message}</text>
+    #             </binding>
+    #         </visual>
+    #     </toast>
+    #     """
+    #     xml_doc = XmlDocument()
+    #     xml_doc.load_xml(content)
+    #
+    #     # Create and show toast notification
+    #     notifier = ToastNotificationManager.create_toast_notifier("YourAppName")
+    #     notification = ToastNotification(xml_doc)
+    #     notifier.show(notification)
+
+    async def send_alert_plyer(
         self, title: str | None = None, message: str | None = None
     ) -> None:
-        """Sends an alert message."""
+        """Sends an alert message by use plyer"""
+
         if not self.on_platform:
             logger.warning("SYSTEM NOTIFICATION is not available on this platform.")
             return
@@ -326,6 +361,12 @@ class SystemNotification(NotificationAbstract):
         )
         asyncio.create_task(coro)
         # logger.debug("*** END SYSTEM NOTIFICATION ***")
+
+    async def send_alert(
+        self, title: str | None = None, message: str | None = None
+    ) -> None:
+        """Sends an alert message."""
+        await self.send_alert_plyer(title, message)
 
 
 class VoiceNotification(NotificationAbstract):
