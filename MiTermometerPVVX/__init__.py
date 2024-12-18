@@ -1,5 +1,11 @@
-def get_version(pyproject: str = "../pyproject.toml"):
-    version = "0.1.0"
+from pathlib import Path
+
+
+def get_version(pyproject: str = None):
+    version = "0.1.0-dev"
+    if not pyproject:
+        pyproject = Path(__file__).parent.parent.joinpath("pyproject.toml")
+
     try:
         with open(pyproject) as f:
             for line in f:
