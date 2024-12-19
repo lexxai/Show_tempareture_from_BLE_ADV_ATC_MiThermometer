@@ -62,7 +62,7 @@ def parse_args(notification_names=None):
         settings.NOTIFICATION or notification_registered_choice[0:1]
     )
     parser.add_argument(
-        "-nt",
+        "-nf",
         "--notification",
         nargs="+",
         choices=notification_registered_choice,
