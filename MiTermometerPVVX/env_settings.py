@@ -3,7 +3,7 @@ import platform
 import sys
 from pathlib import Path
 
-from dotenv import load_dotenv
+from dotenv import find_dotenv, load_dotenv
 from threading import Lock
 
 
@@ -28,15 +28,26 @@ class Settings:
                 custom_names[shortened_key] = value
         return custom_names
 
-    def _initialize(self):
+    def _find_env(self):
         # Load .env file
+        loaded_dotenv = False
+        dotenv = find_dotenv(usecwd=True)
+        if dotenv:
+            loaded_dotenv = load_dotenv(dotenv)
 
-        loaded_dotenv = load_dotenv()
+        if not loaded_dotenv:
+            exe_dir = Path(sys.executable).resolve().parent
+            dotenv = exe_dir.joinpath(".env")
+            loaded_dotenv = load_dotenv(dotenv)
 
+        # print(f"Loaded .env file: {loaded_dotenv}, {dotenv}")
+        if loaded_dotenv:
+            print(f"Loaded .env file")
+        return loaded_dotenv
+
+    def _initialize(self):
+        self._find_env()
         self.DEBUG = os.getenv("DEBUG", "False").strip().lower() == "true"
-        # if self.DEBUG:
-        print(f".env file loaded ({loaded_dotenv}): {find_dotenv()}")
-
         self.ATC_CUSTOM_NAMES = self._load_custom_names()
 
         self.ALERT_LOW_THRESHOLD = os.getenv("ALERT_LOW_THRESHOLD")
