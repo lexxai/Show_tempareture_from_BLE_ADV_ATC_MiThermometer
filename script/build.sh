@@ -12,7 +12,12 @@ pushd "../pyinstall"
 
 export PYTHONPATH=../MiTermometerPVVX
 echo $PYTHONPATH
-$RUNNER pyinstaller --clean ../MiTermometerPVVX/main.py --collect-all pync --name MiTermometerPVVX --onefile -w -c
+$RUNNER pyinstaller --clean ../MiTermometerPVVX/main.py \
+    --icon ../icon-64x64.png \
+    --add-data=../icon-64x64.png:. \
+    --add-data=../pyproject.toml:. \
+    --collect-all pync --name MiTermometerPVVX \
+    --onefile -w -c
 
 if [ -f "${ENVFILE}" ] && [ -d "dist" ] ; then
     echo "Copy ${ENVFILE} to dist/"
