@@ -1,187 +1,38 @@
 import asyncio
 import logging
+import platform
 from abc import ABC, abstractmethod
-from typing import Protocol, TypeVar
+from typing import Protocol, TypeVar, Awaitable, Callable
 
-from utils import AsyncWithDummy
+from env_settings import settings
+from utils import run_in_async_thread
 from discord_api import send_message as discord_send_message
 
-# from plyer import notification
+try:
+    from windows_toasts import (
+        Toast,
+        WindowsToaster,
+        ToastDisplayImage,
+        ToastDuration,
+    )
+except ImportError:
+    Toast, WindowsToaster, ToastDisplayImage, ToastDuration = None, None, None, None
+
+try:
+    from pync import Notifier
+except ImportError as e:
+    Notifier = None
+
+try:
+    from plyer import notification
+except ImportError as e:
+    notification = None
+
 
 logger = logging.getLogger(f"BLEScanner.{__name__}")
 
 
-class NotificationAbstract(ABC):
-    """
-    Abstract base class for notifications.
-
-    Provides a blueprint for notification classes with a lock property
-    and an abstract method to send alert messages.
-    """
-
-    def __init__(self) -> None:
-        """
-        Initializes the NotificationAbstract class.
-        """
-        super().__init__()
-
-    @property
-    def lock(self) -> AsyncWithDummy:
-        """
-        Returns a lock object for use when sending notifications.
-
-        Returns:
-            AsyncWithDummy: An asyncio lock.
-        """
-        return AsyncWithDummy()
-
-    @abstractmethod
-    async def send_alert(
-        self, title: str | None = None, message: str | None = None
-    ) -> None:
-        """
-        Sends an alert message.
-
-        Args:
-            title (str | None): The title of the notification, if provided.
-            message (str | None): The message content of the notification, if provided.
-        """
-        ...
-
-    def __str__(self) -> str:
-        """
-        Returns a string representation of the class.
-
-        Returns:
-            str: The class name in lowercase without 'Notification'.
-        """
-        return f"{self.__class__.__name__.split('Notification')[0].lower() or self.__class__.__name__}"
-
-    def __repr__(self) -> str:
-        """
-        Returns a string representation of the class for debugging.
-
-        Returns:
-            str: The class name in lowercase without 'Notification'.
-        """
-        return self.__str__()
-
-    """
-    A Notification class that logs messages to the logger.
-
-    This class logs message with the INFO level and can be used to log messages
-    without sending any notifications.
-
-    Attributes:
-        _lock (asyncio.Lock | AsyncWithDummy): The lock to use when sending
-            notifications. If not provided, a dummy lock is used.
-    """
-
-
-class LoggerNotification(NotificationAbstract):
-    def __init__(self, lock: asyncio.Lock = None) -> None:
-        """
-        Initializes the LoggerNotification object.
-
-        Args:
-            lock (asyncio.Lock | AsyncWithDummy): The lock to use when sending
-                notifications. If not provided, a dummy lock is used.
-        """
-        super().__init__()
-        self._lock = lock
-
-    @property
-    def lock(self) -> asyncio.Lock | AsyncWithDummy:
-        """
-        Returns the lock object for use when sending notifications.
-
-        If no lock is provided, a dummy lock is used.
-
-        Returns:
-            asyncio.Lock | AsyncWithDummy: The lock object to use when sending
-                notifications.
-        """
-        return self._lock or AsyncWithDummy()
-
-    # @staticmethod
-    async def send_alert(
-        self, title: str | None = None, message: str | None = None
-    ) -> None:
-        """Logs a notification message with an optional title and message.
-
-        Args:
-            title (str | None): The title of the notification, if provided.
-            message (str | None): The message content of the notification, if provided.
-        """
-        if not self.lock:
-            logger.error("LoggerNotification has no lock")
-            return
-        async with self.lock:
-            logger.info("*** START LOGGER NOTIFICATION ***")
-            if title:
-                logger.info(f"Title: {title}")
-            if message:
-                logger.info(f"Message: {message}")
-            logger.info("*** END LOGGER NOTIFICATION ***")
-
-
-class PrintNotification(NotificationAbstract):
-    async def send_alert(
-        self, title: str | None = None, message: str | None = None
-    ) -> None:
-        """Prints a notification message with an optional title and message.
-
-        Args:
-            title (str | None): The title of the notification, if provided.
-            message (str | None): The message content of the notification, if provided.
-        """
-        print("\n*** START PRINT NOTIFICATION ***")
-        if title:
-            print(f"Title: {title}")
-        if message:
-            print(f"Message: {message}")
-        print("*** END PRINT NOTIFICATION ***\n")
-
-
-class DiscordNotification(NotificationAbstract):
-
-    async def send_alert(
-        self, title: str | None = None, message: str | None = None
-    ) -> None:
-        """Sends a notification message to Discord with an optional title and message.
-
-        Args:
-            title (str | None): The title of the notification, if provided.
-            message (str | None): The message content of the notification, if provided.
-        """
-        msg_list = []
-        if title:
-            msg_list.append(title)
-        if message:
-            msg_list.append(message)
-
-        discord_message = "\n".join(msg_list)
-        await discord_send_message(discord_message)
-
-
-class SystemNotification(NotificationAbstract):
-    async def send_alert(
-        self, title: str | None = None, message: str | None = None
-    ) -> None:
-        """Sends an alert message."""
-        logger.info("*** START SYSTEM NOTIFICATION ***")
-        if title:
-            logger.info(f"Title: {title}")
-        if message:
-            logger.info(f"Message: {message}")
-        logger.info("*** END SYSTEM NOTIFICATION ***")
-        # Using plyer for cross-platform tasks
-        # notification.notify(
-        #     title=alert_title,
-        #     message=alert_message,
-        #     timeout=10,  # Notification will disappear after 10 seconds
-        # )
-
+# ---------------------------------------------
 
 T = TypeVar("T", bound="TaskProtocol")
 
@@ -308,3 +159,345 @@ class ManagerNotifications(ManagerAbstract):
             return
         for n in self.tasks:
             await n.send_alert(title, message)
+
+
+# ==========================================================
+
+
+class NotificationAbstract(ABC):
+    """
+    Abstract base class for notifications.
+
+    Provides a blueprint for notification classes with a lock property
+    and an abstract method to send alert messages.
+    """
+
+    def __init__(self) -> None:
+        """
+        Initializes the NotificationAbstract class.
+        """
+        super().__init__()
+
+    @property
+    def lock(self) -> asyncio.Lock:
+        """
+        Returns a lock object for use when sending notifications.
+
+        Returns:
+            asyncio.Lock: An asyncio lock.
+        """
+        return asyncio.Lock()
+
+    @abstractmethod
+    async def send_alert(
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
+    ) -> None:
+        """
+        Sends an alert message.
+
+        Args:
+            title (str | None): The title of the notification, if provided.
+            message (str | None): The message content of the notification, if provided.
+            params (dict | None)
+        """
+        ...
+
+    def __str__(self) -> str:
+        """
+        Returns a string representation of the class.
+
+        Returns:
+            str: The class name in lowercase without 'Notification'.
+        """
+        return f"{self.__class__.__name__.split('Notification')[0].lower() or self.__class__.__name__}"
+
+    def __repr__(self) -> str:
+        """
+        Returns a string representation of the class for debugging.
+
+        Returns:
+            str: The class name in lowercase without 'Notification'.
+        """
+        return self.__str__()
+
+    """
+    A Notification class that logs messages to the logger.
+
+    This class logs message with the INFO level and can be used to log messages
+    without sending any notifications.
+
+    Attributes:
+        _lock (asyncio.Lock | AsyncWithDummy): The lock to use when sending
+            notifications. If not provided, a dummy lock is used.
+    """
+
+
+class LoggerNotification(NotificationAbstract):
+    def __init__(self, lock: asyncio.Lock = None) -> None:
+        """
+        Initializes the LoggerNotification object.
+
+        Args:
+            lock (asyncio.Lock ): The lock to use when sending
+                notifications. If not provided, a dummy lock is used.
+        """
+        super().__init__()
+        self._lock = lock
+
+    @property
+    def lock(self) -> asyncio.Lock:
+        """
+        Returns the lock object for use when sending notifications.
+
+        If no lock is provided, a dummy lock is used.
+
+        Returns:
+            asyncio.Lock : The lock object to use when sending
+                notifications.
+        """
+        return self._lock or asyncio.Lock()
+
+    # @staticmethod
+    async def send_alert(
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
+    ) -> None:
+        """Logs a notification message with an optional title and message.
+
+        Args:
+            title (str | None): The title of the notification, if provided.
+            message (str | None): The message content of the notification, if provided.
+            params (dict | None)
+
+        """
+        if not self.lock:
+            logger.error("LoggerNotification has no lock")
+            return
+        async with self.lock:
+            logger.info("*** START LOGGER NOTIFICATION ***")
+            if title:
+                logger.info(f"Title: {title}")
+            if message:
+                logger.info(f"Message: {message}")
+            logger.info("*** END LOGGER NOTIFICATION ***")
+
+
+class PrintNotification(NotificationAbstract):
+    async def send_alert(
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
+    ) -> None:
+        """Prints a notification message with an optional title and message.
+
+        Args:
+            title (str | None): The title of the notification, if provided.
+            message (str | None): The message content of the notification, if provided.
+            params (dict | None)
+
+        """
+        print("\n*** START PRINT NOTIFICATION ***")
+        if title:
+            print(f"Title: {title}")
+        if message:
+            print(f"Message: {message}")
+        print("*** END PRINT NOTIFICATION ***\n")
+
+
+class DiscordNotification(NotificationAbstract):
+
+    async def send_alert(
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
+    ) -> None:
+        """Sends a notification message to Discord with an optional title and message.
+
+        Args:
+            title (str | None): The title of the notification, if provided.
+            message (str | None): The message content of the notification, if provided.
+            params (dict | None)
+
+        """
+        msg_list = []
+        if title:
+            msg_list.append(title)
+        if message:
+            msg_list.append(message)
+
+        discord_message = "\n".join(msg_list)
+        await discord_send_message(discord_message)
+
+
+class PlatformNotification(NotificationAbstract):
+    def __init__(self):
+        super().__init__()
+        self._sender: (
+            Callable[..., Awaitable[..., None] | None] | Awaitable[..., None] | None
+        ) = None
+        match platform.system():
+            case "Windows":
+                if all([Toast, WindowsToaster, ToastDisplayImage, ToastDuration]):
+                    self._sender = self.send_alert_windows_toasts
+                else:
+                    logger.error(f"Error windows_toasts import")
+            case "Darwin":
+                if Notifier:
+                    self._sender = self.send_alert_pync
+                else:
+                    logger.error(f"Error pync import")
+            case "Linux":
+                if notification:
+                    self._sender = self.send_alert_plyer
+                else:
+                    logger.error(f"Error plyer import")
+
+    @property
+    def sender(self):
+        """
+        Return Awaitable method for send notification with for this platform:
+            argument title: str | None = None,
+            argument message: str | None = None,
+            argument params: dict | None = None,
+        :return: None
+        """
+        return self._sender
+
+    @run_in_async_thread
+    def send_alert_pync(
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
+    ) -> None:
+        if platform.system() == "Darwin":
+            # if params is None:
+            #     params = {}
+            try:
+                # logger.debug(f"send_alert_pync {params.get("icon")=}")
+                Notifier.notify(message, title=title)  # type: ignore
+            except Exception as e:
+                logger.error(f"ERROR pync: {e}")
+        else:
+            logger.warning("*** NOT SUPPORTED PLATFORM ***")
+        return
+
+    @run_in_async_thread
+    def send_alert_plyer(
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
+    ) -> None:
+        """Sends an alert message by use plyer"""
+        if platform.system() == "Linux":
+            if params is None:
+                params = {}
+            # logger.debug("*** START SYSTEM NOTIFICATION ***")
+            try:
+                app_name = params.get("app_name", settings.APP_NAME)
+                app_icon = params.get("icon", settings.ICON)
+                notification.notify(  # type: ignore
+                    title=title,
+                    message=message,
+                    timeout=params.get("timeout", 1),
+                    app_name=app_name,
+                    app_icon=app_icon,
+                    ticker=title,
+                )
+            except Exception as e:
+                logger.error(f"ERROR plyer: {e}")
+        else:
+            logger.warning("*** NOT SUPPORTED PLATFORM ***")
+        # asyncio.create_task(coro)
+        # logger.debug("*** END SYSTEM NOTIFICATION ***")
+
+    @run_in_async_thread
+    def send_alert_windows_toasts(
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
+    ) -> None:
+        """Sends an alert message by use plyer"""
+        if platform.system() == "Windows":
+            if params is None:
+                params = {}
+            app_icon = params.get("icon", settings.ICON)
+            app_name = params.get("app_name", settings.APP_NAME)
+            try:
+                # Create a Toast notification
+                toast = Toast()  # type: ignore
+
+                toast.title = title
+                toast.text_fields = [title, message]
+                icon = ToastDisplayImage.fromPath(app_icon, circleCrop=True)  # type: ignore
+                toast.AddImage(icon)
+                toast.duration = ToastDuration.Long  # type: ignore
+
+                toaster = WindowsToaster(app_name)  # type: ignore
+
+                toaster.show_toast(toast)
+            except Exception as e:
+                logger.error(f"ERROR windows_toasts: {e}")
+        else:
+            logger.warning("*** NOT SUPPORTED PLATFORM ***")
+
+        return
+
+    async def send_alert(
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
+    ) -> None:
+        """Sends an alert message."""
+        if self._sender:
+            await self._sender(title, message, params)
+        else:
+            logger.error("sender is not defined as method in this platform")
+
+
+class SystemNotification(PlatformNotification):
+    def __init__(self, params: dict = None):
+        super().__init__()
+        self.params = params
+
+    async def send_alert(
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
+    ) -> None:
+        """Sends an alert message."""
+        await super().send_alert(title, message, params or self.params)
+
+
+# class VoiceNotification(NotificationAbstract):
+
+#     def __init__(self):
+#         super().__init__()
+#         self.on_platform = getattr(notification, "speak", None)
+
+#     async def send_alert(
+#         self, title: str | None = None, message: str | None = None
+#     ) -> None:
+#         """Sends an alert message."""
+#         if not self.on_platform:
+#             logger.warning("VOICE NOTIFICATION is not available on this platform.")
+#             return
+
+#         # logger.debug("*** START VOICE NOTIFICATION ***")
+#         coro = asyncio.to_thread(
+#             notification.speak,
+#             message=message,
+#         )
+#         asyncio.create_task(coro)
+#         # logger.debug("*** END VOICE NOTIFICATION ***")

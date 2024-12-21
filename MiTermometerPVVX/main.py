@@ -1,17 +1,17 @@
-import argparse
 import asyncio
 import logging
 from logging.handlers import QueueHandler, QueueListener
 from queue import Queue
 
+from env_settings import settings
 from outputs import ConsolePrintAsync
 from parse_args import parse_args
-from env_settings import settings
 
 from notifications import (
     DiscordNotification,
     LoggerNotification,
     ManagerNotifications,
+    SystemNotification,
 )
 
 from outputs import ConsolePrint
@@ -21,7 +21,11 @@ from blescanner import BLEScanner
 print_lock = asyncio.Lock()
 try:
     registered_notifications = ManagerNotifications(
-        [LoggerNotification(print_lock), DiscordNotification()]
+        [
+            LoggerNotification(print_lock),
+            DiscordNotification(),
+            SystemNotification(),
+        ]
     )
 except NameError as e:
     print(f"Error registering notifications: {e} {type(e)}")
@@ -156,16 +160,18 @@ if __name__ in ["main", "__main__"]:
 
     # Clear not used notifications from manager
     registered_notifications.filter(args.notification)
-
-    asyncio.run(
-        main(
-            custom_names=custom_names or settings.ATC_CUSTOM_NAMES,
-            alert_low_threshold=args.alert_low_threshold,
-            alert_high_threshold=args.alert_high_threshold,
-            use_text_pos=args.disable_text_pos,
-            sent_threshold_temp=args.sent_threshold_temp,
-            mode=args.mode,
-            notification=registered_notifications,
-            debug=args.debug or settings.DEBUG,
+    try:
+        asyncio.run(
+            main(
+                custom_names=custom_names or settings.ATC_CUSTOM_NAMES,
+                alert_low_threshold=args.alert_low_threshold,
+                alert_high_threshold=args.alert_high_threshold,
+                use_text_pos=args.disable_text_pos,
+                sent_threshold_temp=args.sent_threshold_temp,
+                mode=args.mode,
+                notification=registered_notifications,
+                debug=args.debug or settings.DEBUG,
+            )
         )
-    )
+    except KeyboardInterrupt:
+        logger.info(f"KeyboardInterrupt. Exit.")
