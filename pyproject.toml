@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "show-temperature-from-ble-adv-atc-mithermometer"
-version = "0.3.0"
+version = "0.3.1"
 description = "Show metrics from BLE devices and notifications"
 authors = ["lexxai <lexxai@gmail.com>"]
 license = "MIT"
