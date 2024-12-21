@@ -185,11 +185,13 @@ For native Windows systems, the application uses the `windows-toasts` package, w
 
 ### macOS
 
-On macOS, the application uses the `pync` package, a wrapper for the `terminal-notifier` console application. This provides basic notification functionality in macOS.
+On macOS, the application uses the `pync` package, a wrapper for the `terminal-notifier` console application. This provides basic notification functionality in macOS. History of all notifiactions present.
 
 **Example usage:**
 
-<img width="759" alt="Example Notification" src="https://github.com/user-attachments/assets/f9c53181-d8e7-4ed9-953e-49366545e30a" />
+<img width="759" alt="Example Notification 1" src="https://github.com/user-attachments/assets/f9c53181-d8e7-4ed9-953e-49366545e30a" />
+
+<img width="769" alt="Example Notification 2" src="https://github.com/user-attachments/assets/807c8e08-5f68-4b09-b59e-f1c679491846" />
 
 
 ### Linux
@@ -205,9 +207,10 @@ Values can get on Dicsord cabinet of user's channel settings : Channel Settings 
 
 For more information: [Discord Webhooks](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks).
 
-Example of Notification:
+### Example of Notification:
 
-...
+<img width="478" alt="dicord notification" src="https://github.com/user-attachments/assets/03d02751-4190-4e99-82e8-5b62f54652d3" />
+
 
 
 
