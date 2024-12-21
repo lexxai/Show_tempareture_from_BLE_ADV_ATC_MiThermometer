@@ -2,6 +2,8 @@ import asyncio
 import datetime
 from functools import wraps
 import logging
+from typing import Literal
+
 from bleak import BleakScanner, BleakError
 
 from notifications import ManagerNotifications
@@ -133,7 +135,7 @@ class BLEScanner:
             uiid = device.address.split("-")[-1][-6:]
         return self.custom_name("ATC_" + uiid)
 
-    def get_device_name(self, address) -> str | None:
+    def get_device_name(self, address: str) -> str | None:
         """Get the name of a registered BLE device."""
 
         return self.atc_devices.get(address, {}).get("name")
@@ -146,7 +148,9 @@ class BLEScanner:
 
         self.atc_counters[device.address] = count
         date_now = datetime.datetime.now()
-        date_diff = date_now - self.atc_date.get(device.address, date_now)
+        date_diff: datetime.timedelta = date_now - self.atc_date.get(
+            device.address, date_now
+        )
         self.atc_date[device.address] = date_now
 
         temp = int.from_bytes(adv_atc[6:8], byteorder="little", signed=True) / 100.0
@@ -179,15 +183,15 @@ class BLEScanner:
     @output_cols
     async def display_device_info(
         self,
-        address,
-        temp,
-        humidity,
-        battery_v,
-        battery,
-        rssi,
-        count,
-        date_now,
-        date_diff,
+        address: str,
+        temp: float,
+        humidity: float,
+        battery_v: float,
+        battery: int,
+        rssi: int,
+        count: int,
+        date_now: datetime.datetime,
+        date_diff: datetime.timedelta,
     ):
         """Display formatted device information."""
         name = self.get_device_name(address)
@@ -201,22 +205,23 @@ class BLEScanner:
             await self.print_text(f"Count: {count}")
             await self.print_text(f"Last Seen: {date_now.strftime('%H:%M:%S')}")
             if date_diff:
-                await self.print_text(f"Duration: {date_diff}")
+                await self.print_text(f"Duration: {str(date_diff).split('.')[0]}")
 
+    @staticmethod
     def generate_title_message(
-        self,
         device_name: str = None,
         temp: float = None,
         threshold_type: int = 0,  # 0 = lower, 2 - higher
         threshold_value: float = None,
     ) -> tuple:
         device_name = device_name or "Unknown Device"
+        unit = "°C"
         threshold_text = "lower" if threshold_type == 0 else "higher"
         threshold_value_text = (
-            f"{threshold_value} °C" if threshold_value else "threshold value"
+            f"{threshold_value} {unit}" if threshold_value else "threshold value"
         )
-        title = f"Temperature Alert for {threshold_text} than {threshold_value_text}"
-        message = f"{device_name}: {temp:.2f} °C" if temp else None
+        title = f"Alert: Temp {threshold_text} than {threshold_value_text}"
+        message = f"{device_name}: {temp:.2f} {unit}" if temp else None
 
         return title, message
 
@@ -281,9 +286,12 @@ class BLEScanner:
         """Start scanning for BLE devices."""
         # self.print_clear()
         modes = ("passive", "active") if self.mode.lower() == "auto" else (self.mode,)
+        mode: Literal["active", "passive"]
         for mode in modes:
             logger.info(f"Scanning BLE devices in {mode} mode...")
             try:
+                if mode not in ["active", "passive"]:
+                    raise ValueError("Mode must be either 'active' or 'passive'.")
                 async with BleakScanner(
                     self.process_advertising_data, scanning_mode=mode
                 ):

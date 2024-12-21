@@ -13,14 +13,14 @@ class PrintAbstract(ABC):
     """
 
     @property
-    def lock(self) -> AsyncWithDummy:
+    def lock(self) -> asyncio.Lock:
         """
         A lock object for use when printing.
 
         Returns:
-            AsyncWithDummy: An asyncio lock.
+            asyncio.Lock: An asyncio lock.
         """
-        return AsyncWithDummy()
+        return asyncio.Lock()
 
     @abstractmethod
     async def print_value(self, text: str, pos: dict = None) -> None:
@@ -152,8 +152,8 @@ class ConsolePrintAsync(ConsolePrint):
         self._lock = lock
 
     @property
-    def lock(self) -> asyncio.Lock | AsyncWithDummy:
-        return self._lock or AsyncWithDummy()
+    def lock(self) -> asyncio.Lock:
+        return self._lock or asyncio.Lock()
 
     async def print_worker(self):
         """

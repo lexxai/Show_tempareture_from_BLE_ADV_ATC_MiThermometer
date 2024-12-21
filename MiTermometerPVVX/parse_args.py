@@ -1,6 +1,7 @@
 import argparse
 
 from env_settings import settings
+from __init__ import __version__
 
 
 def parse_args(notification_names=None):
@@ -61,7 +62,7 @@ def parse_args(notification_names=None):
         settings.NOTIFICATION or notification_registered_choice[0:1]
     )
     parser.add_argument(
-        "-nt",
+        "-nf",
         "--notification",
         nargs="+",
         choices=notification_registered_choice,
@@ -76,6 +77,14 @@ def parse_args(notification_names=None):
         default=settings.DEBUG,
         help=f"Enable debug output. Default is {'enabled' if settings.DEBUG else 'disabled'}.",
         action="store_true",
+    )
+
+    parser.add_argument(
+        "-v",
+        "--version",
+        action="version",
+        version=f"%(prog)s {__version__}",
+        help="Show the version of the application",
     )
 
     args = parser.parse_args()
