@@ -159,6 +159,11 @@ For native Windows systems, the application uses the `windows-toasts` package, w
 
 On macOS, the application uses the `pync` package, a wrapper for the `terminal-notifier` console application. This provides basic notification functionality in macOS.
 
+**Example usage:**
+
+<img width="759" alt="Example Notification" src="https://github.com/user-attachments/assets/f9c53181-d8e7-4ed9-953e-49366545e30a" />
+
+
 ### Linux
 
 For Linux, the application utilizes the `plyer` package for notifications. However, this implementation has not yet been tested and may require further validation.
