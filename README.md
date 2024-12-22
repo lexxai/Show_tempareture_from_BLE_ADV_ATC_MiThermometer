@@ -3,7 +3,7 @@
 This project shows telemetry data from a Bluetooth BLE advertising device of type 'ATC_MiThermometer'. It decodes telemetry data (PVVX) after applying custom firmware from [pvvx/ATC_MiThermometer](https://github.com/pvvx/ATC_MiThermometer) (forked from [atc1441/ATC_MiThermometer](https://github.com/atc1441/ATC_MiThermometer)) for the Xiaomi Thermometer LYWSD03MMC.
 
 <img src="https://user-images.githubusercontent.com/3278842/204167827-ad60ba14-c568-4914-939f-60d522297c80.png" width="150" height="150">
-## New Features (Version 0.3.0):
+## New Features (Version 0.3.1):
 
 - **Refactored Code to Use Classes**: The original code (version 0.1.0) has been rewritten to use object-oriented programming (OOP) principles, leveraging classes for better structure and maintainability.
 - **Async Support with `asyncio`**: Major parts of the code have been refactored to use asynchronous programming with `asyncio` to improve performance, especially for handling I/O-bound tasks.
@@ -80,6 +80,53 @@ To build a `.exe` version of the application for Windows or macOS, follow these 
 These `.exe` files can be run natively on their respective systems without needing a Python environment. All dependencies are bundled into the executable.
 
 
+## Use .env file for settings of applications
+
+By defualt, the application will use system environment variables to set parameters.
+If need override system environment variables, please create a `.env` file in the script directory or parent directory. 
+
+Executable file not contain inside any data from .env file.
+
+If use executable, please put .env file in the same directory as the executable or directory of executable file located. If .env file was successfully loaded on console is message "Loaded .env file". 
+
+### Settings of .env file:
+**NAME_{KEY}** - Define custom names of devices in the format KEY=VALUE, where KEY can match with end of device name (e.g., 12345="OUTSIDE").
+
+**ALERT_LOW_THRESHOLD** - Define the low threshold for temperature alerts. Settings for all devices.
+
+**ALERT_HIGH_THRESHOLD** - Define the high threshold for temperature alerts. Settings for all devices.
+
+**SENT_THRESHOLD_TEMP** - Define the temperature threshold for sending next notifications. Next notification will be sent when absoulte value of temperature changed more than this value.
+
+**NOTIFICATION** - Define the notification mode. Values separated by comma. Values: logger, discord, system, none. Can be combined.
+
+**DISCORD_WEB_HOOKS** - Define the Discord webhook URL for sending notifications if use discord as notification mode. More on section about Discord Notifications.
+
+ 
+**BLE_SCANNER_MODE** - Define the BLE scanner mode. Values: auto, passive, active. Please read Note section.
+
+
+### Exaple of .env file with setings:
+```
+DEBUG=False
+
+NAME_5EDB77="OUTSIDE ROOM"
+NAME_F6ED7A="MAIN ROOM"
+
+ALERT_LOW_THRESHOLD=6.0
+ALERT_HIGH_THRESHOLD=36.0
+SENT_THRESHOLD_TEMP=3.0
+
+# Coma separated list
+# NOTIFICATION=logger,discord
+NOTIFICATION=logger
+DISCORD_WEB_HOOKS=https://discord.com/api/webhooks/.....
+
+# auto, passive, active
+BLE_SCANNER_MODE=passive
+```
+
+
 ## Notes
 
 - **Passive Mode**: This application works by grabbing advertising messages from Bluetooth Low Energy (BLE) devices in passive mode. In passive mode, no bidirectional communication is required with the devices to obtain telemetry data. This means that the application can retrieve data without draining the power of the BLE devices.
@@ -122,26 +169,7 @@ options:
   -v, --version         Show the version of the application
 ```
 
-## Exaple of .env file with setings:
-```
-DEBUG=False
 
-NAME_5EDB77="OUTSIDE ROOM"
-NAME_F6ED7A="MAIN ROOM"
-
-ALERT_LOW_THRESHOLD=6.0
-ALERT_HIGH_THRESHOLD=36.0
-SENT_THRESHOLD_TEMP=3.0
-
-# Coma separated list
-# NOTIFICATION=logger,discord
-NOTIFICATION=logger
-
-# auto, passive, active
-BLE_SCANNER_MODE=passive
-
-DISCORD_WEB_HOOKS=https://discord.com/api/webhooks/.....
-```
 ## System Notification
 
 ### Windows OS
@@ -157,11 +185,32 @@ For native Windows systems, the application uses the `windows-toasts` package, w
 
 ### macOS
 
-On macOS, the application uses the `pync` package, a wrapper for the `terminal-notifier` console application. This provides basic notification functionality in macOS.
+On macOS, the application uses the `pync` package, a wrapper for the `terminal-notifier` console application. This provides basic notification functionality in macOS. History of all notifiactions present.
+
+**Example usage:**
+
+<img width="759" alt="Example Notification 1" src="https://github.com/user-attachments/assets/f9c53181-d8e7-4ed9-953e-49366545e30a" />
+
+<img width="769" alt="Example Notification 2" src="https://github.com/user-attachments/assets/807c8e08-5f68-4b09-b59e-f1c679491846" />
+
 
 ### Linux
 
 For Linux, the application utilizes the `plyer` package for notifications. However, this implementation has not yet been tested and may require further validation.
+
+## Dicord Notification
+
+Information about alarm can be sent also to Discord channel.
+To begin using the application discord notifications, you need to obtain a Webhook URL.
+
+Values can get on Dicsord cabinet of user's channel settings : Channel Settings -> Integration -> Webhook -> New Webhook.
+
+For more information: [Discord Webhooks](https://support.discord.com/hc/en-us/articles/228383668-Intro-to-Webhooks).
+
+### Example of Notification:
+
+<img width="478" alt="dicord notification" src="https://github.com/user-attachments/assets/03d02751-4190-4e99-82e8-5b62f54652d3" />
+
 
 
 
