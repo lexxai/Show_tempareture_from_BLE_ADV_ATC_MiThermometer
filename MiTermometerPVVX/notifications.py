@@ -395,11 +395,21 @@ class PlatformNotification(NotificationAbstract):
         params: dict | None = None,
     ) -> None:
         if platform.system() == "Darwin":
-            # if params is None:
-            #     params = {}
+            if params is None:
+                applescript = (
+                    'display dialog "{text}" buttons {{"Close now or wait 30 sec"}} giving up after 30 with title "{title}" with icon POSIX file "{icon}"'
+                ).format(
+                    title=settings.APP_NAME,
+                    text=f"{title}\n{message}",
+                    icon=settings.ICON,
+                )
+                params = {
+                    "execute": f"osascript -e '{applescript}'",
+                    "sound": "Submarine",
+                }            
             try:
                 # logger.debug(f"send_alert_pync {params.get("icon")=}")
-                Notifier.notify(message, title=title)  # type: ignore
+                Notifier.notify(message, title=title, **params)  # type: ignore
             except Exception as e:
                 logger.error(f"ERROR pync: {e}")
         else:
