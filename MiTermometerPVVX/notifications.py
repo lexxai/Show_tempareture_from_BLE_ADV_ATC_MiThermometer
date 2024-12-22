@@ -50,8 +50,22 @@ class TaskProtocol(Protocol):
     def __repr__(self) -> str: ...
 
     async def send_alert(
-        self, title: str | None = None, message: str | None = None
-    ) -> None: ...
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
+    ) -> None:
+        """Sends an alert message to the user.
+
+        Args:
+            title (str | None): The title of the notification, if provided.
+            message (str | None): The message content of the notification, if provided.
+            params (dict | None): Additional parameters for the notification, if provided.
+
+        Returns:
+            None
+        """
+        ...
 
     @property
     def lock(self) -> None | asyncio.Lock: ...
@@ -143,7 +157,10 @@ class ManagerAbstract:
 class ManagerNotifications(ManagerAbstract):
 
     async def send_alert(
-        self, title: str | None = None, message: str | None = None
+        self,
+        title: str | None = None,
+        message: str | None = None,
+        params: dict | None = None,
     ) -> None:
         """
         Sends an alert message to all registered notification tasks.
@@ -151,7 +168,7 @@ class ManagerNotifications(ManagerAbstract):
         Args:
             title (str | None): The title of the notification, if provided.
             message (str | None): The message content of the notification, if provided.
-
+            params (dict | None): Additional parameters for the notification, if provided.
         Returns:
             None
         """
