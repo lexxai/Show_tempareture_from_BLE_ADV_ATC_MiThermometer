@@ -1,6 +1,7 @@
 import asyncio
 from abc import ABC, abstractmethod
 import logging
+import os
 
 from utils import AsyncWithDummy
 
@@ -244,3 +245,113 @@ class ConsolePrintAsync(ConsolePrint):
         """
         await self.print_queue.put(None)  # Send exit signal to worker
         await self.worker_task
+
+
+class consoleWindow:
+    def __init__(
+        self,
+        id: int = 0,
+        width: int = 21,
+        height: int = 10,
+        x: int = 0,
+        y: int = 0,
+        print_method: PrintAbstract = None,
+    ) -> None:
+        self.id: int = id
+        self.width: int = width
+        self.height: int = height
+        self.x: int = x
+        self.y: int = y
+        self.pos = {"x": 0, "y": 0}
+        self.print_method = print_method or ConsolePrint()
+        self.line_height = 1
+
+    def clip_window_pos(self, pos: dict = None):
+        if pos is None:
+            pos = self.pos.copy()
+        if pos:
+            pos["x"] = max(0, min(pos["x"], self.width - 1))
+            pos["y"] = max(0, min(pos["y"], self.height - 1))
+        return pos
+
+    def get_abs_pos(self):
+        pos = {"x": self.x + self.pos["x"], "y": self.y + self.pos["y"]}
+        return self.clip_window_pos(pos)
+
+    def line_cr(self):
+        self.pos["x"] = 0
+        self.pos["y"] += self.line_height
+        self.pos = self.clip_window_pos()
+
+    async def print_line(self, text: str, pos: dict = None) -> None:
+        if pos is not None:
+            self.pos = self.clip_window_pos(pos)
+        text = f"[{self.pos["x"]}, {self.pos["y"]}] {text}"
+        await self.print_method.print_value(text, self.pos)
+        self.line_cr()
+
+
+class consoleWindows:
+    def __init__(
+        self,
+        x: int = 0,
+        y: int = 0,
+        gap_x: int = 9,
+        gap_y: int = 0,
+        windows: dict = None,
+    ) -> None:
+        self.windows = windows or {}
+        self.x = x
+        self.y = y
+        self.gap_x = gap_x
+        self.gap_y = gap_y
+        terminal_size = os.get_terminal_size()
+        self.cols = terminal_size.columns
+        self.rows = terminal_size.lines
+        print(f"Terminal size: {self.cols}x{self.rows}")
+
+    def add_window(
+        self,
+        id: int = None,
+        width: int = 21,
+        height: int = 5,
+        print_method: PrintAbstract = None,
+    ):
+        if id is None:
+            ids = self.windows.keys()
+            if len(ids) == 0:
+                id = 0
+            else:
+                id = max(ids) + 1
+        x_max_windows = self.cols // (self.x + width + self.gap_x)
+        y_max_windows = self.rows // (self.y + height + self.gap_y)
+
+        if id > x_max_windows * y_max_windows:
+            raise ValueError(f"Window id {id} is out of bounds")
+
+        window_row = id // x_max_windows
+        window_col = id % x_max_windows
+
+        x = self.x + width * window_row + self.gap_x
+        y = self.y + height * window_col + self.gap_y
+
+        window = consoleWindow(id, width, height, x, y, print_method)
+        self.windows[id] = window
+        return id
+
+
+if __name__ == "__main__":
+
+    async def prints(windows_manager: consoleWindows):
+        print_method = ConsolePrint()
+        id = windows_manager.add_window(print_method=print_method)
+        window = windows_manager.windows[id]
+        await asyncio.sleep(2)
+        # await print_method.clear()
+        await print_method.clear()
+        # print("Window", window.__dict__)
+        for i in range(10):
+            await window.print_line(f"Window {window.id} line {i}")
+
+    windows_manager = consoleWindows()
+    asyncio.run(prints(windows_manager))
