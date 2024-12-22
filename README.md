@@ -191,7 +191,14 @@ On macOS, the application uses the `pync` package, a wrapper for the `terminal-n
 
 <img width="759" alt="Example Notification 1" src="https://github.com/user-attachments/assets/f9c53181-d8e7-4ed9-953e-49366545e30a" />
 
+Histroy of notifiactions:
+
 <img width="769" alt="Example Notification 2" src="https://github.com/user-attachments/assets/807c8e08-5f68-4b09-b59e-f1c679491846" />
+
+After clicking on the notification, a dialog window is displayed:
+
+<img width="424" alt="Example Notification 2" src="https://github.com/user-attachments/assets/44f3da4d-b59a-42d1-90e6-82d8693ebe36" />
+
 
 
 ### Linux
