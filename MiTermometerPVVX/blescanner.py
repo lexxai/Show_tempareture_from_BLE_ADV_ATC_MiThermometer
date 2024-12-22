@@ -36,10 +36,12 @@ def output_cols(func):
 
 class BLEScanner:
     # Set the temperature thresholds (in °C) for alerts
+    WINDOW_WIDTH: int = 21
+    WINDOWS_X_GAP: int = 9
     COLS = 4
-    TEXT_WIDTH = 30
+    TEXT_WIDTH = WINDOW_WIDTH + WINDOWS_X_GAP
     LINE_HEIGHT = 5
-    SENT_TRGESHOLD_TEMP = 1
+    SENT_THRESHOLD_TEMP = 1
     ATC_SERVICE = "0000181a-0000-1000-8000-00805f9b34fb"
 
     def __init__(
@@ -50,7 +52,7 @@ class BLEScanner:
         custom_names: dict = None,
         alert_high_threshold: float = None,
         use_text_pos: bool = True,
-        sent_theshold_temp: float = SENT_TRGESHOLD_TEMP,
+        sent_theshold_temp: float = SENT_THRESHOLD_TEMP,
         mode: str = "auto",  # all, passive, active
     ):
         self.output = output or ConsolePrint()
@@ -64,8 +66,8 @@ class BLEScanner:
         self.alert_high_threshold = alert_high_threshold
         self.notification = notification
         self.use_text_pos = use_text_pos
-        self.cache_sented_alert = {}
-        self.sent_theshold_temp = sent_theshold_temp
+        self.cache_sent_alert = {}
+        self.sent_threshold_temp = sent_theshold_temp
         self.mode = mode
         assert self.output is not None, "Output is not set"
 
@@ -85,10 +87,10 @@ class BLEScanner:
     def get_text_pos_dict(self) -> dict:
         return self.print_pos.copy()
 
-    async def print_text(self, text: str) -> None:
+    async def print_text(self, text: str, max_width: int = None) -> None:
         """Print text at the current cursor position."""
         pos = self.get_text_pos_dict() if self.use_text_pos else None
-        await self.output.print_value(text, pos=pos)
+        await self.output.print_value(self.align_line_width(text, max_width), pos=pos)
         if self.use_text_pos:
             self.shift_text_pos(dy=1)
 
@@ -180,6 +182,11 @@ class BLEScanner:
         if self.use_text_pos:
             await self.output.clear_lines(lines)
 
+    def align_line_width(self, line: str, max_width: int = None):
+        if max_width is None:
+            max_width = self.WINDOW_WIDTH
+        return line[:max_width].ljust(max_width)
+
     @output_cols
     async def display_device_info(
         self,
@@ -197,15 +204,15 @@ class BLEScanner:
         name = self.get_device_name(address)
         async with self.output.lock:
             await self.print_text(f"Device: {name}")
-            await self.print_text("-" * 21)
-            await self.print_text(f"Temp: {temp:.2f}°C")
-            await self.print_text(f"Humidity: {humidity:.2f}%")
-            await self.print_text(f"Battery: {battery}% ({battery_v}V)")
+            await self.print_text("-" * self.WINDOW_WIDTH)
+            await self.print_text(f"Temp: {temp:<.2f}°C")
+            await self.print_text(f"Humidity: {humidity:<.2f}%")
+            await self.print_text(f"Battery: {battery}% ({battery_v:.2f}V)")
             await self.print_text(f"RSSI: {rssi} dBm")
-            await self.print_text(f"Count: {count}")
-            await self.print_text(f"Last Seen: {date_now.strftime('%H:%M:%S')}")
+            await self.print_text(f"Count: {count:<3}")
+            await self.print_text(f"Last Seen: {date_now.strftime('%H:%M:%S'):<8}")
             if date_diff:
-                await self.print_text(f"Duration: {str(date_diff).split('.')[0]}")
+                await self.print_text(f"Duration: {str(date_diff).split('.')[0]:<9}")
 
     @staticmethod
     def generate_title_message(
@@ -256,17 +263,17 @@ class BLEScanner:
         Returns:
         bool: True if an alert message should be sent, False if not.
         """
-        if self.cache_sented_alert.get(name):
-            delta_temp = abs(self.cache_sented_alert[name] - temp)
-            if delta_temp > self.sent_theshold_temp:
-                self.cache_sented_alert[name] = temp
+        if self.cache_sent_alert.get(name):
+            delta_temp = abs(self.cache_sent_alert[name] - temp)
+            if delta_temp > self.sent_threshold_temp:
+                self.cache_sent_alert[name] = temp
                 return True
             else:
                 # logger.debug(
                 #     f"Temperature is not changed so much for notification. {temp=} {delta_temp=}"
                 # )
                 return False
-        self.cache_sented_alert[name] = temp
+        self.cache_sent_alert[name] = temp
         return True
 
     async def send_alert(
