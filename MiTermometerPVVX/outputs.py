@@ -31,7 +31,7 @@ class PrintAbstract(ABC):
         Args:
             text (str): The value to print.
             pos (dict, optional): The position to print at. Defaults to None.
-                                  Positioning starts at 1.
+                                  Positioning starts at 0.
         """
         ...
 
@@ -81,7 +81,7 @@ class ConsolePrint(PrintAbstract):
         Args:
             text (str): The text to be formatted.
             pos (dict, optional): A dictionary containing 'x' and 'y' coordinates
-                                  for positioning the text. Defaults to None. 
+                                  for positioning the text. Defaults to None.
                                   Positioning starts at 0.
 
         Returns:
@@ -89,7 +89,7 @@ class ConsolePrint(PrintAbstract):
                  is provided.
         """
         if pos is not None:
-            return self.POSITION.format(y=pos["y"]+1, x=pos["x"]+1, text=text)
+            return self.POSITION.format(y=pos["y"] + 1, x=pos["x"] + 1, text=text)
         return text
 
     async def print_value(self, text: str, pos: dict = None) -> None:
@@ -273,8 +273,8 @@ class consoleWindow:
         if pos is None:
             pos = self.pos.copy()
         if pos:
-            pos["x"] = max(0, min(pos["x"], self.width - 1))
-            pos["y"] = max(0, min(pos["y"], self.height - 1))
+            pos["x"] = max(0, min(pos["x"], self.x + self.width - 1))
+            pos["y"] = max(0, min(pos["y"], self.y + self.height - 1))
         if inplace:
             self.pos = pos
         return pos
@@ -291,7 +291,7 @@ class consoleWindow:
     async def print_line(self, text: str, pos: dict = None) -> None:
         if pos is not None:
             self.pos = self.clip_window_pos(pos)
-        text = f"[{self.pos["x"]}, {self.pos["y"]}] {text}"
+        text = f"[{self.pos["x"]}, {self.pos["y"]}] {text}"[:self.width]
         await self.print_method.print_value(text, self.get_abs_pos())
         self.line_cr()
 
@@ -310,8 +310,8 @@ class consoleWindows:
         self,
         x: int = 0,
         y: int = 0,
-        gap_x: int = 9,
-        gap_y: int = 0,
+        gap_x: int = 4,
+        gap_y: int = 1,
         windows: dict = None,
     ) -> None:
         self.windows = windows or {}
@@ -323,6 +323,11 @@ class consoleWindows:
         self.cols = terminal_size.columns
         self.rows = terminal_size.lines
         print(f"Terminal size: {self.cols}x{self.rows}")
+
+    def get_max_windows(self, width: int, height: int) -> tuple[int, int, int]:
+        x_max_windows = self.cols // (self.x + width + self.gap_x)
+        y_max_windows = self.rows // (self.y + height + self.gap_y)
+        return x_max_windows * y_max_windows, x_max_windows, y_max_windows
 
     def add_window(
         self,
@@ -337,17 +342,17 @@ class consoleWindows:
                 id = 0
             else:
                 id = max(ids) + 1
-        x_max_windows = self.cols // (self.x + width + self.gap_x)
-        y_max_windows = self.rows // (self.y + height + self.gap_y)
 
-        if id > x_max_windows * y_max_windows:
-            raise ValueError(f"Window id {id} is out of bounds")
+        max_windows, x_max_windows, y_max_windows = self.get_max_windows(width, height)
+
+        if id+1 > (max_windows):
+            raise ValueError(f"Window number {id+1} is out of bounds {max_windows}.")
 
         window_row = id // x_max_windows
         window_col = id % x_max_windows
 
-        x = self.x + (width + self.gap_x) * window_row
-        y = self.y + (height + self.gap_y) * window_col
+        x = self.x + (width + self.gap_x) * window_col
+        y = self.y + (height + self.gap_y) * window_row
 
         window = consoleWindow(id, width, height, x, y, print_method)
         self.windows[id] = window
@@ -358,14 +363,19 @@ if __name__ == "__main__":
 
     async def prints(windows_manager: consoleWindows):
         print_method = ConsolePrint()
-        id = windows_manager.add_window(print_method=print_method)
-        window = windows_manager.windows[id]
-        print("Window", window.__dict__)
-        await asyncio.sleep(2)
-        # await print_method.clear()
         await print_method.clear()
-        for i in range(0, 11, 1):
-            await window.print_line(f"Window {window.id} line {i}")
+        for _ in range(0,8):
+            id = windows_manager.add_window(print_method=print_method)
+            window = windows_manager.windows[id]
+            # print("Window", window.__dict__)
+            # await asyncio.sleep(2)
+            # await print_method.clear()
+            # await print_method.clear()
+            for i in range(0, 10, 1):
+                await window.print_line(f"W: {window.id}, L: {i} 01234567890123456789")
 
     windows_manager = consoleWindows()
-    asyncio.run(prints(windows_manager))
+    try:
+        asyncio.run(prints(windows_manager))
+    except Exception as e:
+        print(e)
