@@ -379,10 +379,20 @@ class ConsoleWindows:
                     "", {"x": 0, "y": max_bottop_row}
                 )
 
-    def __enter__(self, *args, **kwargs):
+    def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback): ...
+
+    async def __aenter__(self):
+        print("Entering the context")
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        print("Exiting the context")
+        if exc_type:
+            print(f"Exception: {exc_type}, {exc_value}")
+        return False  # Propagate exceptions
 
 
 if __name__ == "__main__":
