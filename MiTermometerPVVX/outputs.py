@@ -250,7 +250,7 @@ class ConsolePrintAsync(ConsolePrint):
         await self.worker_task
 
 
-class consoleWindow:
+class ConsoleWindow:
     def __init__(
         self,
         id: int = 0,
@@ -291,28 +291,29 @@ class consoleWindow:
     async def print_line(self, text: str, pos: dict = None) -> None:
         if pos is not None:
             self.pos = self.clip_window_pos(pos)
-        text = f"[{self.pos["x"]}, {self.pos["y"]}] {text}"[:self.width]
-        await self.print_method.print_value(text, self.get_abs_pos())
+        # text = f"[{self.pos["x"]}, {self.pos["y"]}] {text}"[: self.width]
+        await self.print_method.print_value(text[: self.width], self.get_abs_pos())
         self.line_cr()
 
     async def clear(self):
-        await self.print_method.clear()
+        self.pos = {"x": 0, "y": 0}
+        await self.clear_lines(self.height)
 
     async def clear_lines(self, lines: int = 1):
         for row in range(lines):
             self.pos["x"] = 0
-            await self.print_method.print_value(" " * self.width, self.get_abs_pos())
-            self.line_cr()
+            await self.print_line(" " * self.width)
 
 
-class consoleWindows:
+class ConsoleWindows:
     def __init__(
         self,
         x: int = 0,
         y: int = 0,
         gap_x: int = 4,
         gap_y: int = 1,
-        windows: dict = None,
+        windows: dict[int, ConsoleWindow] = None,
+        print_method: PrintAbstract = None,
     ) -> None:
         self.windows = windows or {}
         self.x = x
@@ -322,6 +323,7 @@ class consoleWindows:
         terminal_size = os.get_terminal_size()
         self.cols = terminal_size.columns
         self.rows = terminal_size.lines
+        self.print_method = print_method or ConsolePrint()
         print(f"Terminal size: {self.cols}x{self.rows}")
 
     def get_max_windows(self, width: int, height: int) -> tuple[int, int, int]:
@@ -335,7 +337,10 @@ class consoleWindows:
         width: int = 21,
         height: int = 10,
         print_method: PrintAbstract = None,
-    ):
+    ) -> int:
+        if print_method is None:
+            print_method = self.print_method
+
         if id is None:
             ids = self.windows.keys()
             if len(ids) == 0:
@@ -345,7 +350,7 @@ class consoleWindows:
 
         max_windows, x_max_windows, y_max_windows = self.get_max_windows(width, height)
 
-        if id+1 > (max_windows):
+        if id + 1 > (max_windows):
             raise ValueError(f"Window number {id+1} is out of bounds {max_windows}.")
 
         window_row = id // x_max_windows
@@ -354,18 +359,39 @@ class consoleWindows:
         x = self.x + (width + self.gap_x) * window_col
         y = self.y + (height + self.gap_y) * window_row
 
-        window = consoleWindow(id, width, height, x, y, print_method)
+        window = ConsoleWindow(id, width, height, x, y, print_method)
         self.windows[id] = window
         return id
+
+    def get_window(self, id: int) -> ConsoleWindow | None:
+        return self.windows.get(id)
+
+    def max_bottop_row(self) -> int | None:
+        if len(self.windows) == 0:
+            return None
+        return max([window.y + window.height for window in self.windows.values()])
+
+    async def set_cursor_to_max_pos(self):
+        max_bottop_row = windows_manager.max_bottop_row()
+        if max_bottop_row is not None:
+            if windows_manager.print_method is not None:
+                await windows_manager.print_method.print_value(
+                    "", {"x": 0, "y": max_bottop_row}
+                )
+
+    def __enter__(self, *args, **kwargs):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback): ...
 
 
 if __name__ == "__main__":
 
-    async def prints(windows_manager: consoleWindows):
-        print_method = ConsolePrint()
-        await print_method.clear()
-        for _ in range(0,8):
-            id = windows_manager.add_window(print_method=print_method)
+    async def prints(windows_manager: ConsoleWindows):
+        await windows_manager.print_method.clear()
+        max_windows, *_ = windows_manager.get_max_windows(21, 10)
+        for _ in range(0, max_windows):
+            id = windows_manager.add_window()
             window = windows_manager.windows[id]
             # print("Window", window.__dict__)
             # await asyncio.sleep(2)
@@ -373,9 +399,15 @@ if __name__ == "__main__":
             # await print_method.clear()
             for i in range(0, 10, 1):
                 await window.print_line(f"W: {window.id}, L: {i} 01234567890123456789")
+        window_clear = windows_manager.get_window(1)
+        await asyncio.sleep(2)
+        if window_clear:
+            await window_clear.clear()
+        await windows_manager.set_cursor_to_max_pos()
 
-    windows_manager = consoleWindows()
-    try:
-        asyncio.run(prints(windows_manager))
-    except Exception as e:
-        print(e)
+    # MAIN
+    with ConsoleWindows() as windows_manager:  # ConsoleWindows()
+        try:
+            asyncio.run(prints(windows_manager))
+        except Exception as e:
+            print(e)
